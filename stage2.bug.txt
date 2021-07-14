@@ -1,0 +1,76 @@
+model{
+ 
+for(i in 1:Ncomb1){
+ lin.stg1[i] <- beta01 + exp(beta11)*doseX1[i] + exp(beta21)*doseY1[i] + beta31*doseX1[i]*doseY1[i]
+ logit(pEff.stg1[i]) <- lin.stg1[i]
+ NEff.stg1[i] ~ dbern(pEff.stg1[i])
+}
+
+ beta11 <- mu.ex[1] + re.ex[1]
+ beta21 <- mu.ex[2] + re.ex[2]
+ re.ex[1:2] ~ dmnorm(zero[1:2], prec.ex[1:2, 1:2])
+ 
+# predictive distribution under EX assumption
+ beta.pred[1,1] <- mu.ex[1] + re.p[1]
+ beta.pred[1,2] <- mu.ex[2] + re.p[2]
+ re.p[1:2] ~ dmnorm(zero[1:2], prec.ex[1:2, 1:2]) 
+ 
+# default weakly informative prior for situations of NEX
+ beta.pred[2, 1:2] ~ dmnorm(Prior.m.nex[1:2], prec.nex[1:2, 1:2])
+           
+ cov.nex[1, 1] <- pow(Prior.sd.nex[1], 2)
+ cov.nex[2, 2] <- pow(Prior.sd.nex[2], 2)
+ cov.nex[1, 2] <- Prior.sd.nex[1]*Prior.sd.nex[2]*corr
+ cov.nex[2, 1] <- Prior.sd.nex[1]*Prior.sd.nex[2]*corr
+ prec.nex[1:2, 1:2] <- inverse(cov.nex[1:2, 1:2])
+ 
+# MA prediction
+ beta12 <- beta.pred[which, 1]
+ beta22 <- beta.pred[which, 2]
+ 
+# wMix[]: non-trivial weights for EX and NEX
+ which ~ dcat(wMix[1:2])
+ 
+# to monitor the prob of EX
+for(k in 1:2){
+ prob.ex[k] <- equals(which, k)
+}
+ 
+# stage 2 data
+for(j in 1:Ncomb2){
+ lin.stg2[j] <- beta02  + exp(beta12)*doseX2[j] + exp(beta22)*doseY2[j] + beta32*doseX2[j]*doseY2[j]
+ logit(pEff.stg2[j]) <- lin.stg2[j]
+ NEff.stg2[j] ~ dbern(pEff.stg2[j])
+}
+ 
+# for numerical stability: the population means constrained to -10 to 10
+ mu.ex[1] ~ dnorm(0, 0.1)I(-10, 10)
+ mu.ex[2] ~ dnorm(0, 0.1)I(-10, 10) 
+ 
+ prec.tau1 <- pow(Prior.tau.HN[1], -2)
+ prec.tau2 <- pow(Prior.tau.HN[2], -2)
+ tau[1] ~ dnorm(0, prec.tau1)I(0.001,)
+ tau[2] ~ dnorm(0, prec.tau2)I(0.001,) 
+ 
+ cov.ex[1, 1] <- pow(tau[1], 2)
+ cov.ex[2, 2] <- pow(tau[2], 2)
+ cov.ex[1, 2] <- tau[1]*tau[2]*rho
+ cov.ex[2, 1] <- tau[1]*tau[2]*rho
+ prec.ex[1:2, 1:2] <- inverse(cov.ex[1:2, 1:2])
+ 
+ rho ~ dunif(0,0.5)
+ corr ~ dunif(0,0.5)
+ 
+ beta01 ~ dnorm(-1.8, 0.1)
+ beta31 ~ dgamma(0.1, 0.1)
+ beta02 ~ dnorm(-1.8, 0.1)
+ beta32 ~ dgamma(0.1, 0.1)
+ 
+ zero[1:2] <- c(0,0)
+ Prior.m.nex[1:2] <- c(0,0)
+ Prior.sd.nex[1:2] <- c(10,10)
+ Prior.tau.HN[1:2] <- c(0.5,0.5)
+ 
+}
+
+

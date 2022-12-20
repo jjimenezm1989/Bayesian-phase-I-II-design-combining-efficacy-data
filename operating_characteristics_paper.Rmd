@@ -1,0 +1,1736 @@
+---
+title: "A Bayesian adaptive design for dual-agent phase I-II cancer clinical trials combining efficacy data across stages"
+author: "José L. Jiménez and Haiyan Zheng"
+output:
+  html_notebook:
+    code_folding: hide
+editor_options: 
+  chunk_output_type: console
+---
+
+#### True dose-toxicity and dose-efficacy scenarios
+
+We consider two dose-toxicity scenarios and, within each dose-toxicity scenario, four dose-efficacy profiles that place the most efficacious dose combination in a different part of the MTD curve.
+
+```{r, echo=FALSE}
+setwd("~/Research/MAC phase I-II/R code")
+path = paste0(getwd(),"/")
+path_intermediate_outputs = paste0(getwd(),"/intermediate_outputs/")
+path_outputs = paste0(getwd(),"/paper_outputs/")
+library(tidyverse)
+library(ggpubr)
+library(scales)
+
+source("pdlt.R")
+source("peff.R")
+source("twodimmtd2.R")
+source("parameters_declaration.R")
+
+```
+
+
+
+```{r, fig.width= 7, fig.height= 7}
+
+#Dose-toxicity scenarios
+
+grid_DLT_sc1_df = data.frame(x = seq(0, by = 0.001,1)) %>%
+  mutate(y_mtd = twodimmtd2(rho00 = true_rho00_DLT_sc1, rho01 = true_rho01_DLT_sc1, 
+                            rho10 = true_rho10_DLT_sc1, alpha3 = true_alpha3_DLT_sc1, 
+                            theta = theta, x = x)) %>%
+  filter(y_mtd >= 0 & y_mtd <= 1) 
+
+grid_DLT_sc2_df = data.frame(x = seq(0, by = 0.001,1)) %>%
+  mutate(y_mtd = twodimmtd2(rho00 = true_rho00_DLT_sc2, rho01 = true_rho01_DLT_sc2, 
+                            rho10 = true_rho10_DLT_sc2, alpha3 = true_alpha3_DLT_sc2, 
+                            theta = theta, x = x)) %>%
+  filter(y_mtd >= 0 & y_mtd <= 1) 
+
+#Dose-efficacy scenarios along the MTD under H1
+
+grid_DLT_sc1_EFF_sc1_CA_H1_df = grid_DLT_sc1_df %>%
+  mutate(peff = peff(true_beta0_DLT_sc1_EFF_sc1_st2_H1,
+                     true_beta1_DLT_sc1_EFF_sc1_st2_H1,
+                     true_beta2_DLT_sc1_EFF_sc1_st2_H1,
+                     true_beta3_DLT_sc1_EFF_sc1_st2_H1,
+                     x,y_mtd),
+         DLT_scenario = "Dose-toxicity scenario 1",
+         EFF_scenario = "Dose-efficacy scenario 1",
+         overall_scenario = "Scenario A",
+         hypothesis = "alternative hypothesis",
+         agreement = "Stage II & Stage I CA")
+
+grid_DLT_sc1_EFF_sc1_PA_H1_df = grid_DLT_sc1_df %>%
+  mutate(peff = peff(true_beta0_DLT_sc1_EFF_sc1_PA_st1_H1,
+                     true_beta1_DLT_sc1_EFF_sc1_PA_st1_H1,
+                     true_beta2_DLT_sc1_EFF_sc1_PA_st1_H1,
+                     true_beta3_DLT_sc1_EFF_sc1_PA_st1_H1,
+                     x,y_mtd),
+         DLT_scenario = "Dose-toxicity scenario 1",
+         EFF_scenario = "Dose-efficacy scenario 1",
+         overall_scenario = "Scenario A",
+         hypothesis = "alternative hypothesis",
+         agreement = "Stage I PA")
+
+grid_DLT_sc1_EFF_sc1_CD_H1_df = grid_DLT_sc1_df %>%
+  mutate(peff = peff(true_beta0_DLT_sc1_EFF_sc1_CD_st1_H1,
+                     true_beta1_DLT_sc1_EFF_sc1_CD_st1_H1,
+                     true_beta2_DLT_sc1_EFF_sc1_CD_st1_H1,
+                     true_beta3_DLT_sc1_EFF_sc1_CD_st1_H1,
+                     x,y_mtd),
+         DLT_scenario = "Dose-toxicity scenario 1",
+         EFF_scenario = "Dose-efficacy scenario 1",
+         overall_scenario = "Scenario A",
+         hypothesis = "alternative hypothesis",
+         agreement = "Stage I CD")
+
+#####
+
+grid_DLT_sc1_EFF_sc2_CA_H1_df = grid_DLT_sc1_df %>%
+  mutate(peff = peff(true_beta0_DLT_sc1_EFF_sc2_st2_H1,
+                     true_beta1_DLT_sc1_EFF_sc2_st2_H1,
+                     true_beta2_DLT_sc1_EFF_sc2_st2_H1,
+                     true_beta3_DLT_sc1_EFF_sc2_st2_H1,
+                     x,y_mtd),
+         DLT_scenario = "Dose-toxicity scenario 1",
+         EFF_scenario = "Dose-efficacy scenario 2",
+         overall_scenario = "Scenario B",
+         hypothesis = "alternative hypothesis",
+         agreement = "Stage II & Stage I CA")
+
+grid_DLT_sc1_EFF_sc2_PA_H1_df = grid_DLT_sc1_df %>%
+  mutate(peff = peff(true_beta0_DLT_sc1_EFF_sc2_PA_st1_H1,
+                     true_beta1_DLT_sc1_EFF_sc2_PA_st1_H1,
+                     true_beta2_DLT_sc1_EFF_sc2_PA_st1_H1,
+                     true_beta3_DLT_sc1_EFF_sc2_PA_st1_H1,
+                     x,y_mtd),
+         DLT_scenario = "Dose-toxicity scenario 1",
+         EFF_scenario = "Dose-efficacy scenario 2",
+         overall_scenario = "Scenario B",
+         hypothesis = "alternative hypothesis",
+         agreement = "Stage I PA")
+
+grid_DLT_sc1_EFF_sc2_CD_H1_df = grid_DLT_sc1_df %>%
+  mutate(peff = peff(true_beta0_DLT_sc1_EFF_sc2_CD_st1_H1,
+                     true_beta1_DLT_sc1_EFF_sc2_CD_st1_H1,
+                     true_beta2_DLT_sc1_EFF_sc2_CD_st1_H1,
+                     true_beta3_DLT_sc1_EFF_sc2_CD_st1_H1,
+                     x,y_mtd),
+         DLT_scenario = "Dose-toxicity scenario 1",
+         EFF_scenario = "Dose-efficacy scenario 2",
+         overall_scenario = "Scenario B",
+         hypothesis = "alternative hypothesis",
+         agreement = "Stage I CD")
+
+###
+
+grid_DLT_sc2_EFF_sc1_CA_H1_df = grid_DLT_sc2_df %>%
+  mutate(peff = peff(true_beta0_DLT_sc2_EFF_sc1_st2_H1,
+                     true_beta1_DLT_sc2_EFF_sc1_st2_H1,
+                     true_beta2_DLT_sc2_EFF_sc1_st2_H1,
+                     true_beta3_DLT_sc2_EFF_sc1_st2_H1,
+                     x,y_mtd),
+         DLT_scenario = "Dose-toxicity scenario 2",
+         EFF_scenario = "Dose-efficacy scenario 1",
+         overall_scenario = "Scenario C",
+         hypothesis = "alternative hypothesis",
+         agreement = "Stage II & Stage I CA")
+
+grid_DLT_sc2_EFF_sc1_PA_H1_df = grid_DLT_sc2_df %>%
+  mutate(peff = peff(true_beta0_DLT_sc2_EFF_sc1_PA_st1_H1,
+                     true_beta1_DLT_sc2_EFF_sc1_PA_st1_H1,
+                     true_beta2_DLT_sc2_EFF_sc1_PA_st1_H1,
+                     true_beta3_DLT_sc2_EFF_sc1_PA_st1_H1,
+                     x,y_mtd),
+         DLT_scenario = "Dose-toxicity scenario 2",
+         EFF_scenario = "Dose-efficacy scenario 1",
+         overall_scenario = "Scenario C",
+         hypothesis = "alternative hypothesis",
+         agreement = "Stage I PA")
+
+grid_DLT_sc2_EFF_sc1_CD_H1_df = grid_DLT_sc2_df %>%
+  mutate(peff = peff(true_beta0_DLT_sc2_EFF_sc1_CD_st1_H1,
+                     true_beta1_DLT_sc2_EFF_sc1_CD_st1_H1,
+                     true_beta2_DLT_sc2_EFF_sc1_CD_st1_H1,
+                     true_beta3_DLT_sc2_EFF_sc1_CD_st1_H1,
+                     x,y_mtd),
+         DLT_scenario = "Dose-toxicity scenario 2",
+         EFF_scenario = "Dose-efficacy scenario 1",
+         overall_scenario = "Scenario C",
+         hypothesis = "alternative hypothesis",
+         agreement = "Stage I CD")
+
+###
+
+grid_DLT_sc2_EFF_sc2_CA_H1_df = grid_DLT_sc2_df %>%
+  mutate(peff = peff(true_beta0_DLT_sc2_EFF_sc2_st2_H1,
+                     true_beta1_DLT_sc2_EFF_sc2_st2_H1,
+                     true_beta2_DLT_sc2_EFF_sc2_st2_H1,
+                     true_beta3_DLT_sc2_EFF_sc2_st2_H1,
+                     x,y_mtd),
+         DLT_scenario = "Dose-toxicity scenario 2",
+         EFF_scenario = "Dose-efficacy scenario 2",
+         overall_scenario = "Scenario D",
+         hypothesis = "alternative hypothesis",
+         agreement = "Stage II & Stage I CA")
+
+grid_DLT_sc2_EFF_sc2_PA_H1_df = grid_DLT_sc2_df %>%
+  mutate(peff = peff(true_beta0_DLT_sc2_EFF_sc2_PA_st1_H1,
+                     true_beta1_DLT_sc2_EFF_sc2_PA_st1_H1,
+                     true_beta2_DLT_sc2_EFF_sc2_PA_st1_H1,
+                     true_beta3_DLT_sc2_EFF_sc2_PA_st1_H1,
+                     x,y_mtd),
+         DLT_scenario = "Dose-toxicity scenario 2",
+         EFF_scenario = "Dose-efficacy scenario 2",
+         overall_scenario = "Scenario D",
+         hypothesis = "alternative hypothesis",
+         agreement = "Stage I PA")
+
+grid_DLT_sc2_EFF_sc2_CD_H1_df = grid_DLT_sc2_df %>%
+  mutate(peff = peff(true_beta0_DLT_sc2_EFF_sc2_CD_st1_H1,
+                     true_beta1_DLT_sc2_EFF_sc2_CD_st1_H1,
+                     true_beta2_DLT_sc2_EFF_sc2_CD_st1_H1,
+                     true_beta3_DLT_sc2_EFF_sc2_CD_st1_H1,
+                     x,y_mtd),
+         DLT_scenario = "Dose-toxicity scenario 2",
+         EFF_scenario = "Dose-efficacy scenario 2",
+         overall_scenario = "Scenario D",
+         hypothesis = "alternative hypothesis",
+         agreement = "Stage I CD")
+
+
+
+#Dose-efficacy scenarios along the MTD under H0
+
+grid_DLT_sc1_EFF_sc1_CA_H0_df = grid_DLT_sc1_df %>%
+  mutate(peff = peff(true_beta0_DLT_sc1_EFF_sc1_st2_H0,
+                     true_beta1_DLT_sc1_EFF_sc1_st2_H0,
+                     true_beta2_DLT_sc1_EFF_sc1_st2_H0,
+                     true_beta3_DLT_sc1_EFF_sc1_st2_H0,
+                     x,y_mtd),
+         DLT_scenario = "Dose-toxicity scenario 1",
+         EFF_scenario = "Dose-efficacy scenario 1",
+         overall_scenario = "Scenario E",
+         hypothesis = "null hypothesis",
+         agreement = "Stage II & Stage I CA")
+
+grid_DLT_sc1_EFF_sc1_PA_H0_df = grid_DLT_sc1_df %>%
+  mutate(peff = peff(true_beta0_DLT_sc1_EFF_sc1_PA_st1_H0,
+                     true_beta1_DLT_sc1_EFF_sc1_PA_st1_H0,
+                     true_beta2_DLT_sc1_EFF_sc1_PA_st1_H0,
+                     true_beta3_DLT_sc1_EFF_sc1_PA_st1_H0,
+                     x,y_mtd),
+         DLT_scenario = "Dose-toxicity scenario 1",
+         EFF_scenario = "Dose-efficacy scenario 1",
+         overall_scenario = "Scenario E",
+         hypothesis = "null hypothesis",
+         agreement = "Stage I PA")
+
+grid_DLT_sc1_EFF_sc1_CD_H0_df = grid_DLT_sc1_df %>%
+  mutate(peff = peff(true_beta0_DLT_sc1_EFF_sc1_CD_st1_H0,
+                     true_beta1_DLT_sc1_EFF_sc1_CD_st1_H0,
+                     true_beta2_DLT_sc1_EFF_sc1_CD_st1_H0,
+                     true_beta3_DLT_sc1_EFF_sc1_CD_st1_H0,
+                     x,y_mtd),
+         DLT_scenario = "Dose-toxicity scenario 1",
+         EFF_scenario = "Dose-efficacy scenario 1",
+         overall_scenario = "Scenario E",
+         hypothesis = "null hypothesis",
+         agreement = "Stage I CD")
+
+#####
+
+grid_DLT_sc1_EFF_sc2_CA_H0_df = grid_DLT_sc1_df %>%
+  mutate(peff = peff(true_beta0_DLT_sc1_EFF_sc2_st2_H0,
+                     true_beta1_DLT_sc1_EFF_sc2_st2_H0,
+                     true_beta2_DLT_sc1_EFF_sc2_st2_H0,
+                     true_beta3_DLT_sc1_EFF_sc2_st2_H0,
+                     x,y_mtd),
+         DLT_scenario = "Dose-toxicity scenario 1",
+         EFF_scenario = "Dose-efficacy scenario 2",
+         overall_scenario = "Scenario F",
+         hypothesis = "null hypothesis",
+         agreement = "Stage II & Stage I CA")
+
+grid_DLT_sc1_EFF_sc2_PA_H0_df = grid_DLT_sc1_df %>%
+  mutate(peff = peff(true_beta0_DLT_sc1_EFF_sc2_PA_st1_H0,
+                     true_beta1_DLT_sc1_EFF_sc2_PA_st1_H0,
+                     true_beta2_DLT_sc1_EFF_sc2_PA_st1_H0,
+                     true_beta3_DLT_sc1_EFF_sc2_PA_st1_H0,
+                     x,y_mtd),
+         DLT_scenario = "Dose-toxicity scenario 1",
+         EFF_scenario = "Dose-efficacy scenario 2",
+         overall_scenario = "Scenario F",
+         hypothesis = "null hypothesis",
+         agreement = "Stage I PA")
+
+grid_DLT_sc1_EFF_sc2_CD_H0_df = grid_DLT_sc1_df %>%
+  mutate(peff = peff(true_beta0_DLT_sc1_EFF_sc2_CD_st1_H0,
+                     true_beta1_DLT_sc1_EFF_sc2_CD_st1_H0,
+                     true_beta2_DLT_sc1_EFF_sc2_CD_st1_H0,
+                     true_beta3_DLT_sc1_EFF_sc2_CD_st1_H0,
+                     x,y_mtd),
+         DLT_scenario = "Dose-toxicity scenario 1",
+         EFF_scenario = "Dose-efficacy scenario 2",
+         overall_scenario = "Scenario F",
+         hypothesis = "null hypothesis",
+         agreement = "Stage I CD")
+
+###
+
+grid_DLT_sc2_EFF_sc1_CA_H0_df = grid_DLT_sc2_df %>%
+  mutate(peff = peff(true_beta0_DLT_sc2_EFF_sc1_st2_H0,
+                     true_beta1_DLT_sc2_EFF_sc1_st2_H0,
+                     true_beta2_DLT_sc2_EFF_sc1_st2_H0,
+                     true_beta3_DLT_sc2_EFF_sc1_st2_H0,
+                     x,y_mtd),
+         DLT_scenario = "Dose-toxicity scenario 2",
+         EFF_scenario = "Dose-efficacy scenario 1",
+         overall_scenario = "Scenario G",
+         hypothesis = "null hypothesis",
+         agreement = "Stage II & Stage I CA")
+
+grid_DLT_sc2_EFF_sc1_PA_H0_df = grid_DLT_sc2_df %>%
+  mutate(peff = peff(true_beta0_DLT_sc2_EFF_sc1_PA_st1_H0,
+                     true_beta1_DLT_sc2_EFF_sc1_PA_st1_H0,
+                     true_beta2_DLT_sc2_EFF_sc1_PA_st1_H0,
+                     true_beta3_DLT_sc2_EFF_sc1_PA_st1_H0,
+                     x,y_mtd),
+         DLT_scenario = "Dose-toxicity scenario 2",
+         EFF_scenario = "Dose-efficacy scenario 1",
+         overall_scenario = "Scenario G",
+         hypothesis = "null hypothesis",
+         agreement = "Stage I PA")
+
+grid_DLT_sc2_EFF_sc1_CD_H0_df = grid_DLT_sc2_df %>%
+  mutate(peff = peff(true_beta0_DLT_sc2_EFF_sc1_CD_st1_H0,
+                     true_beta1_DLT_sc2_EFF_sc1_CD_st1_H0,
+                     true_beta2_DLT_sc2_EFF_sc1_CD_st1_H0,
+                     true_beta3_DLT_sc2_EFF_sc1_CD_st1_H0,
+                     x,y_mtd),
+         DLT_scenario = "Dose-toxicity scenario 2",
+         EFF_scenario = "Dose-efficacy scenario 1",
+         overall_scenario = "Scenario G",
+         hypothesis = "null hypothesis",
+         agreement = "Stage I CD")
+
+###
+
+grid_DLT_sc2_EFF_sc2_CA_H0_df = grid_DLT_sc2_df %>%
+  mutate(peff = peff(true_beta0_DLT_sc2_EFF_sc2_st2_H0,
+                     true_beta1_DLT_sc2_EFF_sc2_st2_H0,
+                     true_beta2_DLT_sc2_EFF_sc2_st2_H0,
+                     true_beta3_DLT_sc2_EFF_sc2_st2_H0,
+                     x,y_mtd),
+         DLT_scenario = "Dose-toxicity scenario 2",
+         EFF_scenario = "Dose-efficacy scenario 2",
+         overall_scenario = "Scenario H",
+         hypothesis = "null hypothesis",
+         agreement = "Stage II & Stage I CA")
+
+grid_DLT_sc2_EFF_sc2_PA_H0_df = grid_DLT_sc2_df %>%
+  mutate(peff = peff(true_beta0_DLT_sc2_EFF_sc2_PA_st1_H0,
+                     true_beta1_DLT_sc2_EFF_sc2_PA_st1_H0,
+                     true_beta2_DLT_sc2_EFF_sc2_PA_st1_H0,
+                     true_beta3_DLT_sc2_EFF_sc2_PA_st1_H0,
+                     x,y_mtd),
+         DLT_scenario = "Dose-toxicity scenario 2",
+         EFF_scenario = "Dose-efficacy scenario 2",
+         overall_scenario = "Scenario H",
+         hypothesis = "null hypothesis",
+         agreement = "Stage I PA")
+
+grid_DLT_sc2_EFF_sc2_CD_H0_df = grid_DLT_sc2_df %>%
+  mutate(peff = peff(true_beta0_DLT_sc2_EFF_sc2_CD_st1_H0,
+                     true_beta1_DLT_sc2_EFF_sc2_CD_st1_H0,
+                     true_beta2_DLT_sc2_EFF_sc2_CD_st1_H0,
+                     true_beta3_DLT_sc2_EFF_sc2_CD_st1_H0,
+                     x,y_mtd),
+         DLT_scenario = "Dose-toxicity scenario 2",
+         EFF_scenario = "Dose-efficacy scenario 2",
+         overall_scenario = "Scenario H",
+         hypothesis = "null hypothesis",
+         agreement = "Stage I CD")
+
+
+
+grid_EFF_df = rbind(grid_DLT_sc1_EFF_sc1_CA_H1_df,
+                    grid_DLT_sc1_EFF_sc1_PA_H1_df,
+                    grid_DLT_sc1_EFF_sc1_CD_H1_df,
+                    grid_DLT_sc1_EFF_sc2_CA_H1_df,
+                    grid_DLT_sc1_EFF_sc2_PA_H1_df,
+                    grid_DLT_sc1_EFF_sc2_CD_H1_df,
+                    grid_DLT_sc2_EFF_sc1_CA_H1_df,
+                    grid_DLT_sc2_EFF_sc1_PA_H1_df,
+                    grid_DLT_sc2_EFF_sc1_CD_H1_df,
+                    grid_DLT_sc2_EFF_sc2_CA_H1_df,
+                    grid_DLT_sc2_EFF_sc2_PA_H1_df,
+                    grid_DLT_sc2_EFF_sc2_CD_H1_df,
+                    grid_DLT_sc1_EFF_sc1_CA_H0_df,
+                    grid_DLT_sc1_EFF_sc1_PA_H0_df,
+                    grid_DLT_sc1_EFF_sc1_CD_H0_df,
+                    grid_DLT_sc1_EFF_sc2_CA_H0_df,
+                    grid_DLT_sc1_EFF_sc2_PA_H0_df,
+                    grid_DLT_sc1_EFF_sc2_CD_H0_df,
+                    grid_DLT_sc2_EFF_sc1_CA_H0_df,
+                    grid_DLT_sc2_EFF_sc1_PA_H0_df,
+                    grid_DLT_sc2_EFF_sc1_CD_H0_df,
+                    grid_DLT_sc2_EFF_sc2_CA_H0_df,
+                    grid_DLT_sc2_EFF_sc2_PA_H0_df,
+                    grid_DLT_sc2_EFF_sc2_CD_H0_df)
+
+
+grid_EFF_df$agreement = factor(grid_EFF_df$agreement,
+levels = c("Stage II & Stage I CA","Stage I PA","Stage I CD"), 
+labels = c("Stage II & Stage I under CA","Stage I under PA","Stage I under CD"), ordered = TRUE)
+
+# grid_EFF_df$hypothesis = factor(grid_EFF_df$hypothesis,levels = c("null hypothesis","alternative hypothesis"))
+
+plot_figure_2 = ggplot(grid_EFF_df, aes(x = x, y = peff, color = agreement, linetype = agreement)) + 
+  geom_line(size = 0.75) + 
+  geom_hline(yintercept = 0.15, linetype = "dashed", color = "grey") +
+  theme_bw() + 
+  scale_x_continuous("Cisplatin",breaks = c(0,1/3,2/3,1),labels = function(x){round(x*(Xmax - Xmin) + Xmin,0)}) +
+  scale_y_continuous("Probability of efficacy") +
+  scale_colour_manual(values=scales::hue_pal()(3)) +
+  facet_wrap( ~ overall_scenario, ncol = 4) +
+  theme(legend.position = "bottom",
+        legend.text = element_text(size = 9),
+        legend.background = element_rect(fill="transparent"),
+        legend.key = element_rect(fill="transparent"),
+        legend.title=element_blank())
+
+
+ggsave(paste0(path_outputs,"Figure_2.pdf"), plot_figure_2, width = 8, height = 5, dpi = 300) 
+
+
+grid_DLT_df = rbind(grid_DLT_sc1_df %>% mutate(DLT_scenario = "Dose-toxicity scenario 1"),
+                    grid_DLT_sc2_df %>% mutate(DLT_scenario = "Dose-toxicity scenario 2"))
+
+MTD_lockhart = data.frame(x = 0.5, y = 1/3)
+
+plot_figure_1 = ggplot(grid_DLT_df, aes(x = x, y = y_mtd)) +
+  geom_line(size = 1) +
+  scale_x_continuous("Cisplatin",breaks = c(0,1/3,2/3,1),labels = function(x){round(x*(Xmax - Xmin) + Xmin,0)}) +
+  scale_y_continuous(name = "Cabazitaxel", labels = function(y){y*(Ymax - Ymin) + Ymin}) +
+  theme_bw() +
+  geom_point(MTD_lockhart, mapping = aes(x = x, y = y), size = 2) +
+  annotate(geom="text", x = 0.5, y = 1/3 - 0.05, label = "(15,75)") +
+  facet_wrap(~ DLT_scenario)
+
+ggsave(paste0(path_outputs,"Figure_1.pdf"), plot_figure_1, width = 7, height = 4, dpi = 300) 
+
+
+```
+
+#### Design's operating characteristics
+
+We read all the *.csv* files that contain the design's operating characteristics and create *data.frames* that have a termination indicating the DLT and efficacy scenarios (e.g., _DLT_sc1_EFF_sc1). This is an intermediate step that does not produce any output.
+
+```{r}
+
+#READ DATA FROM .CSV FILES AND PRODUCE PLOTS WITH DESIGN OPERATING CHARACTERISTICS
+
+hypothesis_values = c("_H0","_H1")
+DLT_scenario_variables_values = c("_DLT_sc1","_DLT_sc2")
+EFF_scenario_variables_values = c("_EFF_sc1","_EFF_sc2")
+agreement_values = c("_CA","_PA","_CD")
+omega_values = c("_w0","_w025","_w050","_w075","_w1")
+
+for(hypothesis in hypothesis_values){
+for(DLT_scenario_variables in DLT_scenario_variables_values){
+for(EFF_scenario_variables in EFF_scenario_variables_values){
+for(agreement in agreement_values){
+for(omega in omega_values){
+       
+do.call("<-",list(paste0("power_or_typeIerror",DLT_scenario_variables,EFF_scenario_variables,agreement,omega,hypothesis),
+read.csv(paste0(path_intermediate_outputs,"power_or_typeIerror",DLT_scenario_variables,EFF_scenario_variables,agreement,omega,hypothesis,".csv")) %>% dplyr::select(-X)))
+
+do.call("<-",list(paste0("bias_MSE_parameters",DLT_scenario_variables,EFF_scenario_variables,agreement,omega,hypothesis),
+read.csv(paste0(path_intermediate_outputs,"bias_MSE_parameters",DLT_scenario_variables,EFF_scenario_variables,agreement,omega,hypothesis,".csv")) %>% dplyr::select(-X)))
+        
+do.call("<-",list(paste0("optimal_dose_combination",DLT_scenario_variables,EFF_scenario_variables,agreement,omega,hypothesis),
+read.csv(paste0(path_intermediate_outputs,"optimal_dose_combination",DLT_scenario_variables,EFF_scenario_variables,agreement,omega,hypothesis,".csv")) %>% dplyr::select(-X)))
+        
+do.call("<-",list(paste0("stopping_rules",DLT_scenario_variables,EFF_scenario_variables,agreement,omega,hypothesis),
+read.csv(paste0(path_intermediate_outputs,"stopping_rules",DLT_scenario_variables,EFF_scenario_variables,agreement,omega,hypothesis,".csv")) %>% dplyr::select(-X)))
+        
+do.call("<-",list(paste0("sample_size_stopping_rules",DLT_scenario_variables,EFF_scenario_variables,agreement,omega,hypothesis),
+read.csv(paste0(path_intermediate_outputs,"sample_size_stopping_rules",DLT_scenario_variables,EFF_scenario_variables,agreement,omega,hypothesis,".csv")) %>% dplyr::select(-X)))
+        
+do.call("<-",list(paste0("optimal_dose_combination_above_threshold",DLT_scenario_variables,EFF_scenario_variables,agreement,omega,hypothesis),
+read.csv(paste0(path_intermediate_outputs,"optimal_dose_combination_above_threshold",DLT_scenario_variables,EFF_scenario_variables,agreement,omega,hypothesis,".csv")) %>% dplyr::select(-X)))
+        
+do.call("<-",list(paste0("proportion_allocation",DLT_scenario_variables,EFF_scenario_variables,agreement,omega,hypothesis),
+read.csv(paste0(path_intermediate_outputs,"proportion_allocation",DLT_scenario_variables,EFF_scenario_variables,agreement,omega,hypothesis,".csv")) %>% dplyr::select(-X)))
+        
+do.call("<-",list(paste0("dose_combinations",DLT_scenario_variables,EFF_scenario_variables,agreement,omega,hypothesis),
+read.csv(paste0(path_intermediate_outputs,"dose_combinations",DLT_scenario_variables,EFF_scenario_variables,agreement,omega,hypothesis,".csv")) %>% dplyr::select(-X)))
+        
+do.call("<-",list(paste0("MTD_curve",DLT_scenario_variables,EFF_scenario_variables,agreement,omega,hypothesis),
+read.csv(paste0(path_intermediate_outputs,"MTD_curve",DLT_scenario_variables,EFF_scenario_variables,agreement,omega,hypothesis,".csv")) %>% dplyr::select(-X)))
+        
+do.call("<-",list(paste0("DLT_rate",DLT_scenario_variables,EFF_scenario_variables,agreement,omega,hypothesis),
+read.csv(paste0(path_intermediate_outputs,"DLT_rate",DLT_scenario_variables,EFF_scenario_variables,agreement,omega,hypothesis,".csv")) %>% dplyr::select(-X)))
+
+do.call("<-",list(paste0("DLT_rate",DLT_scenario_variables,EFF_scenario_variables,agreement,omega,hypothesis),
+read.csv(paste0(path_intermediate_outputs,"DLT_rate",DLT_scenario_variables,EFF_scenario_variables,agreement,omega,hypothesis,".csv")) %>% dplyr::select(-X)))
+         
+}}}}}
+
+
+```
+
+We see the Bayesian power.
+
+```{r}
+#Bayesian Power
+
+power_or_typeIerror_H0 = rbind(power_or_typeIerror_DLT_sc1_EFF_sc1_CA_w0_H0,
+                               power_or_typeIerror_DLT_sc1_EFF_sc1_CA_w025_H0,
+                               power_or_typeIerror_DLT_sc1_EFF_sc1_CA_w050_H0,
+                               power_or_typeIerror_DLT_sc1_EFF_sc1_CA_w075_H0,
+                               power_or_typeIerror_DLT_sc1_EFF_sc1_CA_w1_H0,
+                               power_or_typeIerror_DLT_sc1_EFF_sc1_PA_w0_H0,
+                               power_or_typeIerror_DLT_sc1_EFF_sc1_PA_w025_H0,
+                               power_or_typeIerror_DLT_sc1_EFF_sc1_PA_w050_H0,
+                               power_or_typeIerror_DLT_sc1_EFF_sc1_PA_w075_H0,
+                               power_or_typeIerror_DLT_sc1_EFF_sc1_PA_w1_H0,
+                               power_or_typeIerror_DLT_sc1_EFF_sc1_CD_w0_H0,
+                               power_or_typeIerror_DLT_sc1_EFF_sc1_CD_w025_H0,
+                               power_or_typeIerror_DLT_sc1_EFF_sc1_CD_w050_H0,
+                               power_or_typeIerror_DLT_sc1_EFF_sc1_CD_w075_H0,
+                               power_or_typeIerror_DLT_sc1_EFF_sc1_CD_w1_H0,
+                               power_or_typeIerror_DLT_sc1_EFF_sc2_CA_w0_H0,
+                               power_or_typeIerror_DLT_sc1_EFF_sc2_CA_w025_H0,
+                               power_or_typeIerror_DLT_sc1_EFF_sc2_CA_w050_H0,
+                               power_or_typeIerror_DLT_sc1_EFF_sc2_CA_w075_H0,
+                               power_or_typeIerror_DLT_sc1_EFF_sc2_CA_w1_H0,
+                               power_or_typeIerror_DLT_sc1_EFF_sc2_PA_w0_H0,
+                               power_or_typeIerror_DLT_sc1_EFF_sc2_PA_w025_H0,
+                               power_or_typeIerror_DLT_sc1_EFF_sc2_PA_w050_H0,
+                               power_or_typeIerror_DLT_sc1_EFF_sc2_PA_w075_H0,
+                               power_or_typeIerror_DLT_sc1_EFF_sc2_PA_w1_H0,
+                               power_or_typeIerror_DLT_sc1_EFF_sc2_CD_w0_H0,
+                               power_or_typeIerror_DLT_sc1_EFF_sc2_CD_w025_H0,
+                               power_or_typeIerror_DLT_sc1_EFF_sc2_CD_w050_H0,
+                               power_or_typeIerror_DLT_sc1_EFF_sc2_CD_w075_H0,
+                               power_or_typeIerror_DLT_sc1_EFF_sc2_CD_w1_H0,
+                               power_or_typeIerror_DLT_sc2_EFF_sc1_CA_w0_H0,
+                               power_or_typeIerror_DLT_sc2_EFF_sc1_CA_w025_H0,
+                               power_or_typeIerror_DLT_sc2_EFF_sc1_CA_w050_H0,
+                               power_or_typeIerror_DLT_sc2_EFF_sc1_CA_w075_H0,
+                               power_or_typeIerror_DLT_sc2_EFF_sc1_CA_w1_H0,
+                               power_or_typeIerror_DLT_sc2_EFF_sc1_PA_w0_H0,
+                               power_or_typeIerror_DLT_sc2_EFF_sc1_PA_w025_H0,
+                               power_or_typeIerror_DLT_sc2_EFF_sc1_PA_w050_H0,
+                               power_or_typeIerror_DLT_sc2_EFF_sc1_PA_w075_H0,
+                               power_or_typeIerror_DLT_sc2_EFF_sc1_PA_w1_H0,
+                               power_or_typeIerror_DLT_sc2_EFF_sc1_CD_w0_H0,
+                               power_or_typeIerror_DLT_sc2_EFF_sc1_CD_w025_H0,
+                               power_or_typeIerror_DLT_sc2_EFF_sc1_CD_w050_H0,
+                               power_or_typeIerror_DLT_sc2_EFF_sc1_CD_w075_H0,
+                               power_or_typeIerror_DLT_sc2_EFF_sc1_CD_w1_H0,
+                               power_or_typeIerror_DLT_sc2_EFF_sc2_CA_w0_H0,
+                               power_or_typeIerror_DLT_sc2_EFF_sc2_CA_w025_H0,
+                               power_or_typeIerror_DLT_sc2_EFF_sc2_CA_w050_H0,
+                               power_or_typeIerror_DLT_sc2_EFF_sc2_CA_w075_H0,
+                               power_or_typeIerror_DLT_sc2_EFF_sc2_CA_w1_H0,
+                               power_or_typeIerror_DLT_sc2_EFF_sc2_PA_w0_H0,
+                               power_or_typeIerror_DLT_sc2_EFF_sc2_PA_w025_H0,
+                               power_or_typeIerror_DLT_sc2_EFF_sc2_PA_w050_H0,
+                               power_or_typeIerror_DLT_sc2_EFF_sc2_PA_w075_H0,
+                               power_or_typeIerror_DLT_sc2_EFF_sc2_PA_w1_H0,
+                               power_or_typeIerror_DLT_sc2_EFF_sc2_CD_w0_H0,
+                               power_or_typeIerror_DLT_sc2_EFF_sc2_CD_w025_H0,
+                               power_or_typeIerror_DLT_sc2_EFF_sc2_CD_w050_H0,
+                               power_or_typeIerror_DLT_sc2_EFF_sc2_CD_w075_H0,
+                               power_or_typeIerror_DLT_sc2_EFF_sc2_CD_w1_H0) %>%
+  mutate(hypothesis = "null hypothesis") %>%
+  filter(delta_u == 0.5) %>%
+  group_by(DLT_scenario, EFF_scenario, agreement) %>%
+  mutate(difference = value - value[omega == 0])
+
+
+power_or_typeIerror_H1 = rbind(power_or_typeIerror_DLT_sc1_EFF_sc1_CA_w0_H1,
+                               power_or_typeIerror_DLT_sc1_EFF_sc1_CA_w025_H1,
+                               power_or_typeIerror_DLT_sc1_EFF_sc1_CA_w050_H1,
+                               power_or_typeIerror_DLT_sc1_EFF_sc1_CA_w075_H1,
+                               power_or_typeIerror_DLT_sc1_EFF_sc1_CA_w1_H1,
+                               power_or_typeIerror_DLT_sc1_EFF_sc1_PA_w0_H1,
+                               power_or_typeIerror_DLT_sc1_EFF_sc1_PA_w025_H1,
+                               power_or_typeIerror_DLT_sc1_EFF_sc1_PA_w050_H1,
+                               power_or_typeIerror_DLT_sc1_EFF_sc1_PA_w075_H1,
+                               power_or_typeIerror_DLT_sc1_EFF_sc1_PA_w1_H1,
+                               power_or_typeIerror_DLT_sc1_EFF_sc1_CD_w0_H1,
+                               power_or_typeIerror_DLT_sc1_EFF_sc1_CD_w025_H1,
+                               power_or_typeIerror_DLT_sc1_EFF_sc1_CD_w050_H1,
+                               power_or_typeIerror_DLT_sc1_EFF_sc1_CD_w075_H1,
+                               power_or_typeIerror_DLT_sc1_EFF_sc1_CD_w1_H1,
+                               power_or_typeIerror_DLT_sc1_EFF_sc2_CA_w0_H1,
+                               power_or_typeIerror_DLT_sc1_EFF_sc2_CA_w025_H1,
+                               power_or_typeIerror_DLT_sc1_EFF_sc2_CA_w050_H1,
+                               power_or_typeIerror_DLT_sc1_EFF_sc2_CA_w075_H1,
+                               power_or_typeIerror_DLT_sc1_EFF_sc2_CA_w1_H1,
+                               power_or_typeIerror_DLT_sc1_EFF_sc2_PA_w0_H1,
+                               power_or_typeIerror_DLT_sc1_EFF_sc2_PA_w025_H1,
+                               power_or_typeIerror_DLT_sc1_EFF_sc2_PA_w050_H1,
+                               power_or_typeIerror_DLT_sc1_EFF_sc2_PA_w075_H1,
+                               power_or_typeIerror_DLT_sc1_EFF_sc2_PA_w1_H1,
+                               power_or_typeIerror_DLT_sc1_EFF_sc2_CD_w0_H1,
+                               power_or_typeIerror_DLT_sc1_EFF_sc2_CD_w025_H1,
+                               power_or_typeIerror_DLT_sc1_EFF_sc2_CD_w050_H1,
+                               power_or_typeIerror_DLT_sc1_EFF_sc2_CD_w075_H1,
+                               power_or_typeIerror_DLT_sc1_EFF_sc2_CD_w1_H1,
+                               power_or_typeIerror_DLT_sc2_EFF_sc1_CA_w0_H1,
+                               power_or_typeIerror_DLT_sc2_EFF_sc1_CA_w025_H1,
+                               power_or_typeIerror_DLT_sc2_EFF_sc1_CA_w050_H1,
+                               power_or_typeIerror_DLT_sc2_EFF_sc1_CA_w075_H1,
+                               power_or_typeIerror_DLT_sc2_EFF_sc1_CA_w1_H1,
+                               power_or_typeIerror_DLT_sc2_EFF_sc1_PA_w0_H1,
+                               power_or_typeIerror_DLT_sc2_EFF_sc1_PA_w025_H1,
+                               power_or_typeIerror_DLT_sc2_EFF_sc1_PA_w050_H1,
+                               power_or_typeIerror_DLT_sc2_EFF_sc1_PA_w075_H1,
+                               power_or_typeIerror_DLT_sc2_EFF_sc1_PA_w1_H1,
+                               power_or_typeIerror_DLT_sc2_EFF_sc1_CD_w0_H1,
+                               power_or_typeIerror_DLT_sc2_EFF_sc1_CD_w025_H1,
+                               power_or_typeIerror_DLT_sc2_EFF_sc1_CD_w050_H1,
+                               power_or_typeIerror_DLT_sc2_EFF_sc1_CD_w075_H1,
+                               power_or_typeIerror_DLT_sc2_EFF_sc1_CD_w1_H1,
+                               power_or_typeIerror_DLT_sc2_EFF_sc2_CA_w0_H1,
+                               power_or_typeIerror_DLT_sc2_EFF_sc2_CA_w025_H1,
+                               power_or_typeIerror_DLT_sc2_EFF_sc2_CA_w050_H1,
+                               power_or_typeIerror_DLT_sc2_EFF_sc2_CA_w075_H1,
+                               power_or_typeIerror_DLT_sc2_EFF_sc2_CA_w1_H1,
+                               power_or_typeIerror_DLT_sc2_EFF_sc2_PA_w0_H1,
+                               power_or_typeIerror_DLT_sc2_EFF_sc2_PA_w025_H1,
+                               power_or_typeIerror_DLT_sc2_EFF_sc2_PA_w050_H1,
+                               power_or_typeIerror_DLT_sc2_EFF_sc2_PA_w075_H1,
+                               power_or_typeIerror_DLT_sc2_EFF_sc2_PA_w1_H1,
+                               power_or_typeIerror_DLT_sc2_EFF_sc2_CD_w0_H1,
+                               power_or_typeIerror_DLT_sc2_EFF_sc2_CD_w025_H1,
+                               power_or_typeIerror_DLT_sc2_EFF_sc2_CD_w050_H1,
+                               power_or_typeIerror_DLT_sc2_EFF_sc2_CD_w075_H1,
+                               power_or_typeIerror_DLT_sc2_EFF_sc2_CD_w1_H1) %>%
+  mutate(hypothesis = "alternative hypothesis") %>%
+  filter(delta_u == 0.5) %>%
+  group_by(DLT_scenario, EFF_scenario, agreement) %>%
+  mutate(difference = value - value[omega == 0])
+
+power_or_typeIerror = rbind(power_or_typeIerror_H1,power_or_typeIerror_H0) %>%
+  mutate(overall_scenario = ifelse(DLT_scenario == "Dose-toxicity scenario 1" & EFF_scenario == "Dose-efficacy scenario 1" & hypothesis == "alternative hypothesis", "Scenario A",
+                            ifelse(DLT_scenario == "Dose-toxicity scenario 1" & EFF_scenario == "Dose-efficacy scenario 2" & hypothesis == "alternative hypothesis", "Scenario B", 
+                            ifelse(DLT_scenario == "Dose-toxicity scenario 2" & EFF_scenario == "Dose-efficacy scenario 1" & hypothesis == "alternative hypothesis", "Scenario C", 
+                            ifelse(DLT_scenario == "Dose-toxicity scenario 2" & EFF_scenario == "Dose-efficacy scenario 2" & hypothesis == "alternative hypothesis", "Scenario D", 
+                            ifelse(DLT_scenario == "Dose-toxicity scenario 1" & EFF_scenario == "Dose-efficacy scenario 1" & hypothesis == "null hypothesis", "Scenario E", 
+                            ifelse(DLT_scenario == "Dose-toxicity scenario 1" & EFF_scenario == "Dose-efficacy scenario 2" & hypothesis == "null hypothesis", "Scenario F", 
+                            ifelse(DLT_scenario == "Dose-toxicity scenario 2" & EFF_scenario == "Dose-efficacy scenario 1" & hypothesis == "null hypothesis", "Scenario G", "Scenario H"))))))))
+
+
+power_or_typeIerror$agreement = factor(power_or_typeIerror$agreement,levels = c("CA","PA","CD"), labels = c("Stage I under CA", "Stage I under PA", "Stage I under CD"))
+# power_or_typeIerror$hypothesis = factor(power_or_typeIerror$hypothesis,levels = c("null hypothesis","alternative hypothesis"))
+
+plot_power = ggplot(power_or_typeIerror, aes(x = as.factor(omega), y = value, fill = agreement)) +
+  geom_bar(stat = "identity", position = position_dodge(), color = "black") +
+  scale_color_manual(values = hue_pal()(3)) +
+  # geom_text(aes(label=round(value,2)), vjust=1.5, color="black", position = position_dodge(0.9), size=2.5) + 
+  scale_y_continuous("Probability of rejecting H0", limits = c(0,1)) +
+  theme_bw() +
+  scale_x_discrete(expression(omega)) +
+  facet_wrap(~ overall_scenario, ncol = 4) +
+  theme(legend.position = "bottom",
+        legend.text = element_text(size = 9),
+        legend.background = element_rect(fill="transparent"),
+        legend.key = element_rect(fill="transparent"),
+        legend.title=element_blank())
+
+aa = power_or_typeIerror %>% 
+  filter(omega == 0 & overall_scenario %in% c("Scenario A", "Scenario B", "Scenario C", "Scenario D"))
+
+aa = power_or_typeIerror %>% 
+  filter(omega == 0 & overall_scenario %in% c("Scenario E", "Scenario F", "Scenario G", "Scenario H"))
+
+range(aa$value)
+
+
+plot_power_difference = ggplot(power_or_typeIerror %>% filter(omega != 0), aes(x = as.factor(omega), y = difference, fill = agreement)) +
+  geom_bar(stat = "identity", position = position_dodge(width=0.9), color = "black", width = 0.7) +
+  scale_color_manual(values = hue_pal()(3)) +
+  #geom_text(aes(label=round(difference,1)), vjust=1.5, color="black", position = position_dodge(0.9), size=2.5) + 
+  scale_y_continuous(expression(paste("Difference in prob. of rejecting H0 w.r.t ",omega," = 0")), limits = c(-0.05,0.15)) +
+  theme_bw() +
+  scale_x_discrete(expression(omega)) +
+  facet_wrap(~ overall_scenario, ncol = 4) +
+  theme(legend.position = "bottom",
+        legend.text = element_text(size = 9),
+        legend.background = element_rect(fill="transparent"),
+        legend.key = element_rect(fill="transparent"),
+        legend.title=element_blank())
+
+
+ggsave(paste0(path_outputs,"plot_power.pdf"), plot_power, width = 8, height = 5, dpi = 300) 
+ggsave(paste0(path_outputs,"plot_power_difference.pdf"), plot_power_difference, width = 8, height = 5, dpi = 300) 
+
+
+```
+
+MTD curve at the end of stage I
+
+```{r}
+#MTD curve
+
+estimated_MTD_curve_H0 = rbind(MTD_curve_DLT_sc1_EFF_sc1_CA_w0_H0,
+                               MTD_curve_DLT_sc1_EFF_sc1_CA_w025_H0,
+                               MTD_curve_DLT_sc1_EFF_sc1_CA_w050_H0,
+                               MTD_curve_DLT_sc1_EFF_sc1_CA_w075_H0,
+                               MTD_curve_DLT_sc1_EFF_sc1_CA_w1_H0,
+                               MTD_curve_DLT_sc1_EFF_sc1_PA_w0_H0,
+                               MTD_curve_DLT_sc1_EFF_sc1_PA_w025_H0,
+                               MTD_curve_DLT_sc1_EFF_sc1_PA_w050_H0,
+                               MTD_curve_DLT_sc1_EFF_sc1_PA_w075_H0,
+                               MTD_curve_DLT_sc1_EFF_sc1_PA_w1_H0,
+                               MTD_curve_DLT_sc1_EFF_sc1_CD_w0_H0,
+                               MTD_curve_DLT_sc1_EFF_sc1_CD_w025_H0,
+                               MTD_curve_DLT_sc1_EFF_sc1_CD_w050_H0,
+                               MTD_curve_DLT_sc1_EFF_sc1_CD_w075_H0,
+                               MTD_curve_DLT_sc1_EFF_sc1_CD_w1_H0) %>% 
+              filter(y <= 1 & y >= 0) %>%
+mutate(curve_type = "Estimated MTD (H0)") 
+
+true_MTD_curve = rbind(MTD_curve_DLT_sc1_EFF_sc1_H1,
+                       MTD_curve_DLT_sc1_EFF_sc2_H1,
+                       MTD_curve_DLT_sc1_EFF_sc3_H1,
+                       MTD_curve_DLT_sc1_EFF_sc4_H1,
+                       MTD_curve_DLT_sc2_EFF_sc1_H1,
+                       MTD_curve_DLT_sc2_EFF_sc2_H1,
+                       MTD_curve_DLT_sc2_EFF_sc3_H1,
+                       MTD_curve_DLT_sc2_EFF_sc4_H1) %>% 
+       filter(y <= 1 & y >= 0, 
+                     type == "True MTD") %>%
+  mutate(curve_type = "True MTD") %>%
+  dplyr::select(-type)
+
+MTD_curve_df = rbind(true_MTD_curve, estimated_MTD_curve_H1, estimated_MTD_curve_H0)
+MTD_curve_df$curve_type = factor(MTD_curve_df$curve_type,levels=c("True MTD","Estimated MTD (H1)", "Estimated MTD (H0)"))
+
+plot_MTD = ggplot(MTD_curve_df, aes(x = x, y = y, linetype = curve_type)) +
+  geom_line(aes(color = curve_type), size = 1, alpha = 0.8) +
+  scale_x_continuous("Cisplatin",breaks = c(0,1/3,2/3,1),labels = function(x){round(x*(Xmax - Xmin) + Xmin,0)}) +
+  scale_y_continuous(name = "Cabazitaxel", labels = function(y){y*(Ymax - Ymin) + Ymin}) +
+  theme_bw() +
+  labs(title = "") +
+  theme(legend.position = "bottom",
+        legend.text = element_text(size = 9),
+        legend.background = element_rect(fill="transparent"),
+        legend.key = element_rect(fill="transparent"),
+        legend.title=element_blank()) +
+  facet_wrap(~ DLT_scenario + EFF_scenario, nrow = 2)
+
+
+plot_MTD
+
+ggsave(paste0(path_outputs,"plot_MTD.pdf"), plot_MTD, width = 8, height = 5, dpi = 300)
+
+
+```
+
+Proportion of patient allocation, in stage II, in dose levels above efficacy threshold
+
+```{r}
+
+proportion_ODC_above_threshold_stage2_H1 = rbind(optimal_dose_combination_above_threshold_DLT_sc1_EFF_sc1_CA_w0_H1,
+                                                        optimal_dose_combination_above_threshold_DLT_sc1_EFF_sc1_CA_w025_H1,
+                                                        optimal_dose_combination_above_threshold_DLT_sc1_EFF_sc1_CA_w050_H1,
+                                                        optimal_dose_combination_above_threshold_DLT_sc1_EFF_sc1_CA_w075_H1,
+                                                        optimal_dose_combination_above_threshold_DLT_sc1_EFF_sc1_CA_w1_H1,
+                                                        optimal_dose_combination_above_threshold_DLT_sc1_EFF_sc1_PA_w0_H1,
+                                                        optimal_dose_combination_above_threshold_DLT_sc1_EFF_sc1_PA_w025_H1,
+                                                        optimal_dose_combination_above_threshold_DLT_sc1_EFF_sc1_PA_w050_H1,
+                                                        optimal_dose_combination_above_threshold_DLT_sc1_EFF_sc1_PA_w075_H1,
+                                                        optimal_dose_combination_above_threshold_DLT_sc1_EFF_sc1_PA_w1_H1,
+                                                        optimal_dose_combination_above_threshold_DLT_sc1_EFF_sc1_CD_w0_H1,
+                                                        optimal_dose_combination_above_threshold_DLT_sc1_EFF_sc1_CD_w025_H1,
+                                                        optimal_dose_combination_above_threshold_DLT_sc1_EFF_sc1_CD_w050_H1,
+                                                        optimal_dose_combination_above_threshold_DLT_sc1_EFF_sc1_CD_w075_H1,
+                                                        optimal_dose_combination_above_threshold_DLT_sc1_EFF_sc1_CD_w1_H1,
+                                                        optimal_dose_combination_above_threshold_DLT_sc1_EFF_sc2_CA_w0_H1,
+                                                        optimal_dose_combination_above_threshold_DLT_sc1_EFF_sc2_CA_w025_H1,
+                                                        optimal_dose_combination_above_threshold_DLT_sc1_EFF_sc2_CA_w050_H1,
+                                                        optimal_dose_combination_above_threshold_DLT_sc1_EFF_sc2_CA_w075_H1,
+                                                        optimal_dose_combination_above_threshold_DLT_sc1_EFF_sc2_CA_w1_H1,
+                                                        optimal_dose_combination_above_threshold_DLT_sc1_EFF_sc2_PA_w0_H1,
+                                                        optimal_dose_combination_above_threshold_DLT_sc1_EFF_sc2_PA_w025_H1,
+                                                        optimal_dose_combination_above_threshold_DLT_sc1_EFF_sc2_PA_w050_H1,
+                                                        optimal_dose_combination_above_threshold_DLT_sc1_EFF_sc2_PA_w075_H1,
+                                                        optimal_dose_combination_above_threshold_DLT_sc1_EFF_sc2_PA_w1_H1,
+                                                        optimal_dose_combination_above_threshold_DLT_sc1_EFF_sc2_CD_w0_H1,
+                                                        optimal_dose_combination_above_threshold_DLT_sc1_EFF_sc2_CD_w025_H1,
+                                                        optimal_dose_combination_above_threshold_DLT_sc1_EFF_sc2_CD_w050_H1,
+                                                        optimal_dose_combination_above_threshold_DLT_sc1_EFF_sc2_CD_w075_H1,
+                                                        optimal_dose_combination_above_threshold_DLT_sc1_EFF_sc2_CD_w1_H1,
+                                                        optimal_dose_combination_above_threshold_DLT_sc2_EFF_sc1_CA_w0_H1,
+                                                        optimal_dose_combination_above_threshold_DLT_sc2_EFF_sc1_CA_w025_H1,
+                                                        optimal_dose_combination_above_threshold_DLT_sc2_EFF_sc1_CA_w050_H1,
+                                                        optimal_dose_combination_above_threshold_DLT_sc2_EFF_sc1_CA_w075_H1,
+                                                        optimal_dose_combination_above_threshold_DLT_sc2_EFF_sc1_CA_w1_H1,
+                                                        optimal_dose_combination_above_threshold_DLT_sc2_EFF_sc1_PA_w0_H1,
+                                                        optimal_dose_combination_above_threshold_DLT_sc2_EFF_sc1_PA_w025_H1,
+                                                        optimal_dose_combination_above_threshold_DLT_sc2_EFF_sc1_PA_w050_H1,
+                                                        optimal_dose_combination_above_threshold_DLT_sc2_EFF_sc1_PA_w075_H1,
+                                                        optimal_dose_combination_above_threshold_DLT_sc2_EFF_sc1_PA_w1_H1,
+                                                        optimal_dose_combination_above_threshold_DLT_sc2_EFF_sc1_CD_w0_H1,
+                                                        optimal_dose_combination_above_threshold_DLT_sc2_EFF_sc1_CD_w025_H1,
+                                                        optimal_dose_combination_above_threshold_DLT_sc2_EFF_sc1_CD_w050_H1,
+                                                        optimal_dose_combination_above_threshold_DLT_sc2_EFF_sc1_CD_w075_H1,
+                                                        optimal_dose_combination_above_threshold_DLT_sc2_EFF_sc1_CD_w1_H1,
+                                                        optimal_dose_combination_above_threshold_DLT_sc2_EFF_sc2_CA_w0_H1,
+                                                        optimal_dose_combination_above_threshold_DLT_sc2_EFF_sc2_CA_w025_H1,
+                                                        optimal_dose_combination_above_threshold_DLT_sc2_EFF_sc2_CA_w050_H1,
+                                                        optimal_dose_combination_above_threshold_DLT_sc2_EFF_sc2_CA_w075_H1,
+                                                        optimal_dose_combination_above_threshold_DLT_sc2_EFF_sc2_CA_w1_H1,
+                                                        optimal_dose_combination_above_threshold_DLT_sc2_EFF_sc2_PA_w0_H1,
+                                                        optimal_dose_combination_above_threshold_DLT_sc2_EFF_sc2_PA_w025_H1,
+                                                        optimal_dose_combination_above_threshold_DLT_sc2_EFF_sc2_PA_w050_H1,
+                                                        optimal_dose_combination_above_threshold_DLT_sc2_EFF_sc2_PA_w075_H1,
+                                                        optimal_dose_combination_above_threshold_DLT_sc2_EFF_sc2_PA_w1_H1,
+                                                        optimal_dose_combination_above_threshold_DLT_sc2_EFF_sc2_CD_w0_H1,
+                                                        optimal_dose_combination_above_threshold_DLT_sc2_EFF_sc2_CD_w025_H1,
+                                                        optimal_dose_combination_above_threshold_DLT_sc2_EFF_sc2_CD_w050_H1,
+                                                        optimal_dose_combination_above_threshold_DLT_sc2_EFF_sc2_CD_w075_H1,
+                                                        optimal_dose_combination_above_threshold_DLT_sc2_EFF_sc2_CD_w1_H1) %>%
+  mutate(hypothesis = "alternative hypothesis",
+         overall_scenario = ifelse(DLT_scenario == "Dose-toxicity scenario 1" & EFF_scenario == "Dose-efficacy scenario 1" & hypothesis == "alternative hypothesis", "Scenario A",
+                            ifelse(DLT_scenario == "Dose-toxicity scenario 1" & EFF_scenario == "Dose-efficacy scenario 2" & hypothesis == "alternative hypothesis", "Scenario B", 
+                            ifelse(DLT_scenario == "Dose-toxicity scenario 2" & EFF_scenario == "Dose-efficacy scenario 1" & hypothesis == "alternative hypothesis", "Scenario C", 
+                            ifelse(DLT_scenario == "Dose-toxicity scenario 2" & EFF_scenario == "Dose-efficacy scenario 2" & hypothesis == "alternative hypothesis", "Scenario D", 
+                            ifelse(DLT_scenario == "Dose-toxicity scenario 1" & EFF_scenario == "Dose-efficacy scenario 1" & hypothesis == "null hypothesis", "Scenario E", 
+                            ifelse(DLT_scenario == "Dose-toxicity scenario 1" & EFF_scenario == "Dose-efficacy scenario 2" & hypothesis == "null hypothesis", "Scenario F", 
+                            ifelse(DLT_scenario == "Dose-toxicity scenario 2" & EFF_scenario == "Dose-efficacy scenario 1" & hypothesis == "null hypothesis", "Scenario G", "Scenario H"))))))))
+
+                                                     
+proportion_ODC_above_threshold_stage2_H1$agreement = factor(proportion_ODC_above_threshold_stage2_H1$agreement,
+                                                                   levels = c("CA","PA","CD"), labels = c("Stage I under CA", "Stage I under PA", "Stage I under CD"))
+
+
+proportion_ODC_above_threshold_stage2_H1 = proportion_ODC_above_threshold_stage2_H1 %>%
+  group_by(DLT_scenario,EFF_scenario,agreement) %>%
+  mutate(difference = proportion_above_threshold - proportion_above_threshold[omega == 0])
+
+aa = proportion_ODC_above_threshold_stage2_H1 %>% 
+  filter(omega > 0 & overall_scenario %in% c("Scenario A", "Scenario B", "Scenario C", "Scenario D"))
+
+aa = proportion_ODC_above_threshold_stage2_H1 %>% 
+  filter(omega == 0 & overall_scenario %in% c("Scenario E", "Scenario F", "Scenario G", "Scenario H"))
+
+range(aa$difference*100)
+
+plot_proportion_ODC_above_threshold_stage2 = 
+ggplot(proportion_ODC_above_threshold_stage2_H1 %>% filter(omega != 0), aes(x = as.factor(omega), y = difference, fill = agreement)) +
+  scale_y_continuous(expression(paste("Difference in the prop. of correct recommendation w.r.t ",omega," = 0")), labels = scales::percent_format(accuracy = 1)) +
+  scale_x_discrete(expression(omega)) +
+  geom_bar(stat = "identity", position = position_dodge(0.9), color = "black", width = 0.7) +
+  #geom_text(aes(label=round(difference*100,2)), vjust=1.5, color="black", position = position_dodge(0.9), size=2.5) + 
+  scale_color_manual(values = hue_pal()(3)) +
+  labs(title = "") +
+  theme_bw() +
+  theme(legend.position = "bottom",
+        legend.text = element_text(size = 9),
+        legend.background = element_rect(fill="transparent"),
+        legend.key = element_rect(fill="transparent"),
+        legend.title=element_blank()) +
+  facet_wrap(~ overall_scenario)
+
+ggsave(paste0(path_outputs,"plot_proportion_ODC_above_threshold_stage2_H1.pdf"), plot_proportion_ODC_above_threshold_stage2, width = 8, height = 5, dpi = 300)
+
+```
+
+Recommended optimal dose combination density
+
+```{r}
+
+optimal_dose_combination_H1 = rbind(optimal_dose_combination_DLT_sc1_EFF_sc1_CA_w0_H1,
+                                    optimal_dose_combination_DLT_sc1_EFF_sc1_CA_w025_H1,
+                                    optimal_dose_combination_DLT_sc1_EFF_sc1_CA_w050_H1,
+                                    optimal_dose_combination_DLT_sc1_EFF_sc1_CA_w075_H1,
+                                    optimal_dose_combination_DLT_sc1_EFF_sc1_CA_w1_H1,
+                                    optimal_dose_combination_DLT_sc1_EFF_sc1_PA_w0_H1,
+                                    optimal_dose_combination_DLT_sc1_EFF_sc1_PA_w025_H1,
+                                    optimal_dose_combination_DLT_sc1_EFF_sc1_PA_w050_H1,
+                                    optimal_dose_combination_DLT_sc1_EFF_sc1_PA_w075_H1,
+                                    optimal_dose_combination_DLT_sc1_EFF_sc1_PA_w1_H1,
+                                    optimal_dose_combination_DLT_sc1_EFF_sc1_CD_w0_H1,
+                                    optimal_dose_combination_DLT_sc1_EFF_sc1_CD_w025_H1,
+                                    optimal_dose_combination_DLT_sc1_EFF_sc1_CD_w050_H1,
+                                    optimal_dose_combination_DLT_sc1_EFF_sc1_CD_w075_H1,
+                                    optimal_dose_combination_DLT_sc1_EFF_sc1_CD_w1_H1,
+                                    optimal_dose_combination_DLT_sc1_EFF_sc2_CA_w0_H1,
+                                    optimal_dose_combination_DLT_sc1_EFF_sc2_CA_w025_H1,
+                                    optimal_dose_combination_DLT_sc1_EFF_sc2_CA_w050_H1,
+                                    optimal_dose_combination_DLT_sc1_EFF_sc2_CA_w075_H1,
+                                    optimal_dose_combination_DLT_sc1_EFF_sc2_CA_w1_H1,
+                                    optimal_dose_combination_DLT_sc1_EFF_sc2_PA_w0_H1,
+                                    optimal_dose_combination_DLT_sc1_EFF_sc2_PA_w025_H1,
+                                    optimal_dose_combination_DLT_sc1_EFF_sc2_PA_w050_H1,
+                                    optimal_dose_combination_DLT_sc1_EFF_sc2_PA_w075_H1,
+                                    optimal_dose_combination_DLT_sc1_EFF_sc2_PA_w1_H1,
+                                    optimal_dose_combination_DLT_sc1_EFF_sc2_CD_w0_H1,
+                                    optimal_dose_combination_DLT_sc1_EFF_sc2_CD_w025_H1,
+                                    optimal_dose_combination_DLT_sc1_EFF_sc2_CD_w050_H1,
+                                    optimal_dose_combination_DLT_sc1_EFF_sc2_CD_w075_H1,
+                                    optimal_dose_combination_DLT_sc1_EFF_sc2_CD_w1_H1,
+                                    optimal_dose_combination_DLT_sc2_EFF_sc1_CA_w0_H1,
+                                    optimal_dose_combination_DLT_sc2_EFF_sc1_CA_w025_H1,
+                                    optimal_dose_combination_DLT_sc2_EFF_sc1_CA_w050_H1,
+                                    optimal_dose_combination_DLT_sc2_EFF_sc1_CA_w075_H1,
+                                    optimal_dose_combination_DLT_sc2_EFF_sc1_CA_w1_H1,
+                                    optimal_dose_combination_DLT_sc2_EFF_sc1_PA_w0_H1,
+                                    optimal_dose_combination_DLT_sc2_EFF_sc1_PA_w025_H1,
+                                    optimal_dose_combination_DLT_sc2_EFF_sc1_PA_w050_H1,
+                                    optimal_dose_combination_DLT_sc2_EFF_sc1_PA_w075_H1,
+                                    optimal_dose_combination_DLT_sc2_EFF_sc1_PA_w1_H1,
+                                    optimal_dose_combination_DLT_sc2_EFF_sc1_CD_w0_H1,
+                                    optimal_dose_combination_DLT_sc2_EFF_sc1_CD_w025_H1,
+                                    optimal_dose_combination_DLT_sc2_EFF_sc1_CD_w050_H1,
+                                    optimal_dose_combination_DLT_sc2_EFF_sc1_CD_w075_H1,
+                                    optimal_dose_combination_DLT_sc2_EFF_sc1_CD_w1_H1,
+                                    optimal_dose_combination_DLT_sc2_EFF_sc2_CA_w0_H1,
+                                    optimal_dose_combination_DLT_sc2_EFF_sc2_CA_w025_H1,
+                                    optimal_dose_combination_DLT_sc2_EFF_sc2_CA_w050_H1,
+                                    optimal_dose_combination_DLT_sc2_EFF_sc2_CA_w075_H1,
+                                    optimal_dose_combination_DLT_sc2_EFF_sc2_CA_w1_H1,
+                                    optimal_dose_combination_DLT_sc2_EFF_sc2_PA_w0_H1,
+                                    optimal_dose_combination_DLT_sc2_EFF_sc2_PA_w025_H1,
+                                    optimal_dose_combination_DLT_sc2_EFF_sc2_PA_w050_H1,
+                                    optimal_dose_combination_DLT_sc2_EFF_sc2_PA_w075_H1,
+                                    optimal_dose_combination_DLT_sc2_EFF_sc2_PA_w1_H1,
+                                    optimal_dose_combination_DLT_sc2_EFF_sc2_CD_w0_H1,
+                                    optimal_dose_combination_DLT_sc2_EFF_sc2_CD_w025_H1,
+                                    optimal_dose_combination_DLT_sc2_EFF_sc2_CD_w050_H1,
+                                    optimal_dose_combination_DLT_sc2_EFF_sc2_CD_w075_H1,
+                                    optimal_dose_combination_DLT_sc2_EFF_sc2_CD_w1_H1)
+
+
+
+grid_DLT_sc1_df = grid_DLT_sc1_df %>% mutate(DLT_scenario = "D-T sc. 1")
+grid_DLT_sc2_df = grid_DLT_sc2_df %>% mutate(DLT_scenario = "D-T sc. 2")
+
+grid_DLT_sc1_A_df = grid_DLT_sc1_df %>% mutate(overall_scenario = "Scenario A")
+grid_DLT_sc1_B_df = grid_DLT_sc1_df %>% mutate(overall_scenario = "Scenario B")
+grid_DLT_sc2_C_df = grid_DLT_sc2_df %>% mutate(overall_scenario = "Scenario C")
+grid_DLT_sc2_D_df = grid_DLT_sc2_df %>% mutate(overall_scenario = "Scenario D")
+
+grid_DLT_df = rbind(grid_DLT_sc1_A_df, grid_DLT_sc1_B_df ,grid_DLT_sc2_C_df, grid_DLT_sc2_D_df)
+
+optimal_dose_combination_H1 = optimal_dose_combination_H1 %>% 
+  mutate(DLT_scenario = ifelse(DLT_scenario == "Dose-toxicity scenario 1","D-T sc. 1","D-T sc. 2"),
+         EFF_scenario = ifelse(EFF_scenario == "Dose-efficacy scenario 1","D-E sc. 1","D-E sc. 2"))
+
+optimal_dose_combination1_H1 = optimal_dose_combination_H1 %>%
+  mutate(overall_scenario = ifelse(DLT_scenario == "D-T sc. 1" & EFF_scenario == "D-E sc. 1", "Scenario A",
+                            ifelse(DLT_scenario == "D-T sc. 1" & EFF_scenario == "D-E sc. 2", "Scenario B", 
+                            ifelse(DLT_scenario == "D-T sc. 2" & EFF_scenario == "D-E sc. 1", "Scenario C", "Scenario D"))))
+
+optimal_dose_combination1_H1$agreement = factor(optimal_dose_combination1_H1$agreement, levels = c("CA","PA","CD"))
+
+optimal_dose_combination1_H1$overall_scenario = factor(optimal_dose_combination1_H1$overall_scenario, levels = c("Scenario A", "Scenario B", "Scenario C", "Scenario D"))
+
+optimal_dose_combination1_H1$omega = factor(optimal_dose_combination1_H1$omega, 
+                                            levels = c("0", "0.25", "0.5", "0.75", "1"),
+                                            labels = c("w = 0", "w = 0.25", "w = 0.5", "w = 0.75", "w = 1"))
+
+plot_ODC = 
+ggplot(grid_DLT_df, aes(x = x, y = y_mtd)) +
+  geom_line() +
+  geom_density_2d_filled(optimal_dose_combination1_H1, mapping = aes(x = x, y = y), 
+                         alpha = 0.7, contour_var = "ndensity") + 
+  scale_x_continuous("Cisplatin",breaks = c(0,1/3,2/3,1),labels = function(x){round(x*(Xmax - Xmin) + Xmin,0)}) +
+  scale_y_continuous(name = "Cabazitaxel", labels = function(y){y*(Ymax - Ymin) + Ymin}) +
+  theme_bw() +
+  labs(title = "", fill = "Density") +
+  theme(legend.position = "right",
+        legend.text = element_text(size = 8),
+        legend.background = element_rect(fill="transparent"),
+        legend.key = element_rect(fill="transparent")) +
+  facet_grid(overall_scenario + agreement ~  omega)
+
+#Save plots
+ggsave(paste0(path_outputs,"plot_ODC_surface_H1.pdf"), plot_ODC, width = 11, height = 13, dpi = 300)
+
+
+
+
+
+```
+
+We now show the probability of early stopping due to safety and futility
+
+```{r}
+
+stopping_rules_H0 = rbind(stopping_rules_DLT_sc1_EFF_sc1_CA_w0_H0,
+                          stopping_rules_DLT_sc1_EFF_sc1_CA_w025_H0,
+                          stopping_rules_DLT_sc1_EFF_sc1_CA_w050_H0,
+                          stopping_rules_DLT_sc1_EFF_sc1_CA_w075_H0,
+                          stopping_rules_DLT_sc1_EFF_sc1_CA_w1_H0,
+                          stopping_rules_DLT_sc1_EFF_sc1_PA_w0_H0,
+                          stopping_rules_DLT_sc1_EFF_sc1_PA_w025_H0,
+                          stopping_rules_DLT_sc1_EFF_sc1_PA_w050_H0,
+                          stopping_rules_DLT_sc1_EFF_sc1_PA_w075_H0,
+                          stopping_rules_DLT_sc1_EFF_sc1_PA_w1_H0,
+                          stopping_rules_DLT_sc1_EFF_sc1_CD_w0_H0,
+                          stopping_rules_DLT_sc1_EFF_sc1_CD_w025_H0,
+                          stopping_rules_DLT_sc1_EFF_sc1_CD_w050_H0,
+                          stopping_rules_DLT_sc1_EFF_sc1_CD_w075_H0,
+                          stopping_rules_DLT_sc1_EFF_sc1_CD_w1_H0,
+                          stopping_rules_DLT_sc1_EFF_sc2_CA_w0_H0,
+                          stopping_rules_DLT_sc1_EFF_sc2_CA_w025_H0,
+                          stopping_rules_DLT_sc1_EFF_sc2_CA_w050_H0,
+                          stopping_rules_DLT_sc1_EFF_sc2_CA_w075_H0,
+                          stopping_rules_DLT_sc1_EFF_sc2_CA_w1_H0,
+                          stopping_rules_DLT_sc1_EFF_sc2_PA_w0_H0,
+                          stopping_rules_DLT_sc1_EFF_sc2_PA_w025_H0,
+                          stopping_rules_DLT_sc1_EFF_sc2_PA_w050_H0,
+                          stopping_rules_DLT_sc1_EFF_sc2_PA_w075_H0,
+                          stopping_rules_DLT_sc1_EFF_sc2_PA_w1_H0,
+                          stopping_rules_DLT_sc1_EFF_sc2_CD_w0_H0,
+                          stopping_rules_DLT_sc1_EFF_sc2_CD_w025_H0,
+                          stopping_rules_DLT_sc1_EFF_sc2_CD_w050_H0,
+                          stopping_rules_DLT_sc1_EFF_sc2_CD_w075_H0,
+                          stopping_rules_DLT_sc1_EFF_sc2_CD_w1_H0,
+                          stopping_rules_DLT_sc2_EFF_sc1_CA_w0_H0,
+                          stopping_rules_DLT_sc2_EFF_sc1_CA_w025_H0,
+                          stopping_rules_DLT_sc2_EFF_sc1_CA_w050_H0,
+                          stopping_rules_DLT_sc2_EFF_sc1_CA_w075_H0,
+                          stopping_rules_DLT_sc2_EFF_sc1_CA_w1_H0,
+                          stopping_rules_DLT_sc2_EFF_sc1_PA_w0_H0,
+                          stopping_rules_DLT_sc2_EFF_sc1_PA_w025_H0,
+                          stopping_rules_DLT_sc2_EFF_sc1_PA_w050_H0,
+                          stopping_rules_DLT_sc2_EFF_sc1_PA_w075_H0,
+                          stopping_rules_DLT_sc2_EFF_sc1_PA_w1_H0,
+                          stopping_rules_DLT_sc2_EFF_sc1_CD_w0_H0,
+                          stopping_rules_DLT_sc2_EFF_sc1_CD_w025_H0,
+                          stopping_rules_DLT_sc2_EFF_sc1_CD_w050_H0,
+                          stopping_rules_DLT_sc2_EFF_sc1_CD_w075_H0,
+                          stopping_rules_DLT_sc2_EFF_sc1_CD_w1_H0,
+                          stopping_rules_DLT_sc2_EFF_sc2_CA_w0_H0,
+                          stopping_rules_DLT_sc2_EFF_sc2_CA_w025_H0,
+                          stopping_rules_DLT_sc2_EFF_sc2_CA_w050_H0,
+                          stopping_rules_DLT_sc2_EFF_sc2_CA_w075_H0,
+                          stopping_rules_DLT_sc2_EFF_sc2_CA_w1_H0,
+                          stopping_rules_DLT_sc2_EFF_sc2_PA_w0_H0,
+                          stopping_rules_DLT_sc2_EFF_sc2_PA_w025_H0,
+                          stopping_rules_DLT_sc2_EFF_sc2_PA_w050_H0,
+                          stopping_rules_DLT_sc2_EFF_sc2_PA_w075_H0,
+                          stopping_rules_DLT_sc2_EFF_sc2_PA_w1_H0,
+                          stopping_rules_DLT_sc2_EFF_sc2_CD_w0_H0,
+                          stopping_rules_DLT_sc2_EFF_sc2_CD_w025_H0,
+                          stopping_rules_DLT_sc2_EFF_sc2_CD_w050_H0,
+                          stopping_rules_DLT_sc2_EFF_sc2_CD_w075_H0,
+                          stopping_rules_DLT_sc2_EFF_sc2_CD_w1_H0) %>%
+  mutate(hypothesis = "null hypothesis")
+
+
+stopping_rules_H1 = rbind(stopping_rules_DLT_sc1_EFF_sc1_CA_w0_H1,
+                          stopping_rules_DLT_sc1_EFF_sc1_CA_w025_H1,
+                          stopping_rules_DLT_sc1_EFF_sc1_CA_w050_H1,
+                          stopping_rules_DLT_sc1_EFF_sc1_CA_w075_H1,
+                          stopping_rules_DLT_sc1_EFF_sc1_CA_w1_H1,
+                          stopping_rules_DLT_sc1_EFF_sc1_PA_w0_H1,
+                          stopping_rules_DLT_sc1_EFF_sc1_PA_w025_H1,
+                          stopping_rules_DLT_sc1_EFF_sc1_PA_w050_H1,
+                          stopping_rules_DLT_sc1_EFF_sc1_PA_w075_H1,
+                          stopping_rules_DLT_sc1_EFF_sc1_PA_w1_H1,
+                          stopping_rules_DLT_sc1_EFF_sc1_CD_w0_H1,
+                          stopping_rules_DLT_sc1_EFF_sc1_CD_w025_H1,
+                          stopping_rules_DLT_sc1_EFF_sc1_CD_w050_H1,
+                          stopping_rules_DLT_sc1_EFF_sc1_CD_w075_H1,
+                          stopping_rules_DLT_sc1_EFF_sc1_CD_w1_H1,
+                          stopping_rules_DLT_sc1_EFF_sc2_CA_w0_H1,
+                          stopping_rules_DLT_sc1_EFF_sc2_CA_w025_H1,
+                          stopping_rules_DLT_sc1_EFF_sc2_CA_w050_H1,
+                          stopping_rules_DLT_sc1_EFF_sc2_CA_w075_H1,
+                          stopping_rules_DLT_sc1_EFF_sc2_CA_w1_H1,
+                          stopping_rules_DLT_sc1_EFF_sc2_PA_w0_H1,
+                          stopping_rules_DLT_sc1_EFF_sc2_PA_w025_H1,
+                          stopping_rules_DLT_sc1_EFF_sc2_PA_w050_H1,
+                          stopping_rules_DLT_sc1_EFF_sc2_PA_w075_H1,
+                          stopping_rules_DLT_sc1_EFF_sc2_PA_w1_H1,
+                          stopping_rules_DLT_sc1_EFF_sc2_CD_w0_H1,
+                          stopping_rules_DLT_sc1_EFF_sc2_CD_w025_H1,
+                          stopping_rules_DLT_sc1_EFF_sc2_CD_w050_H1,
+                          stopping_rules_DLT_sc1_EFF_sc2_CD_w075_H1,
+                          stopping_rules_DLT_sc1_EFF_sc2_CD_w1_H1,
+                          stopping_rules_DLT_sc2_EFF_sc1_CA_w0_H1,
+                          stopping_rules_DLT_sc2_EFF_sc1_CA_w025_H1,
+                          stopping_rules_DLT_sc2_EFF_sc1_CA_w050_H1,
+                          stopping_rules_DLT_sc2_EFF_sc1_CA_w075_H1,
+                          stopping_rules_DLT_sc2_EFF_sc1_CA_w1_H1,
+                          stopping_rules_DLT_sc2_EFF_sc1_PA_w0_H1,
+                          stopping_rules_DLT_sc2_EFF_sc1_PA_w025_H1,
+                          stopping_rules_DLT_sc2_EFF_sc1_PA_w050_H1,
+                          stopping_rules_DLT_sc2_EFF_sc1_PA_w075_H1,
+                          stopping_rules_DLT_sc2_EFF_sc1_PA_w1_H1,
+                          stopping_rules_DLT_sc2_EFF_sc1_CD_w0_H1,
+                          stopping_rules_DLT_sc2_EFF_sc1_CD_w025_H1,
+                          stopping_rules_DLT_sc2_EFF_sc1_CD_w050_H1,
+                          stopping_rules_DLT_sc2_EFF_sc1_CD_w075_H1,
+                          stopping_rules_DLT_sc2_EFF_sc1_CD_w1_H1,
+                          stopping_rules_DLT_sc2_EFF_sc2_CA_w0_H1,
+                          stopping_rules_DLT_sc2_EFF_sc2_CA_w025_H1,
+                          stopping_rules_DLT_sc2_EFF_sc2_CA_w050_H1,
+                          stopping_rules_DLT_sc2_EFF_sc2_CA_w075_H1,
+                          stopping_rules_DLT_sc2_EFF_sc2_CA_w1_H1,
+                          stopping_rules_DLT_sc2_EFF_sc2_PA_w0_H1,
+                          stopping_rules_DLT_sc2_EFF_sc2_PA_w025_H1,
+                          stopping_rules_DLT_sc2_EFF_sc2_PA_w050_H1,
+                          stopping_rules_DLT_sc2_EFF_sc2_PA_w075_H1,
+                          stopping_rules_DLT_sc2_EFF_sc2_PA_w1_H1,
+                          stopping_rules_DLT_sc2_EFF_sc2_CD_w0_H1,
+                          stopping_rules_DLT_sc2_EFF_sc2_CD_w025_H1,
+                          stopping_rules_DLT_sc2_EFF_sc2_CD_w050_H1,
+                          stopping_rules_DLT_sc2_EFF_sc2_CD_w075_H1,
+                          stopping_rules_DLT_sc2_EFF_sc2_CD_w1_H1) %>%
+  mutate(hypothesis = "alternative hypothesis")
+
+stopping_rules = rbind(stopping_rules_H0,stopping_rules_H1) %>%
+  mutate(overall_scenario = ifelse(DLT_scenario == "Dose-toxicity scenario 1" & EFF_scenario == "Dose-efficacy scenario 1" & hypothesis == "alternative hypothesis", "Scenario A",
+                            ifelse(DLT_scenario == "Dose-toxicity scenario 1" & EFF_scenario == "Dose-efficacy scenario 2" & hypothesis == "alternative hypothesis", "Scenario B", 
+                            ifelse(DLT_scenario == "Dose-toxicity scenario 2" & EFF_scenario == "Dose-efficacy scenario 1" & hypothesis == "alternative hypothesis", "Scenario C", 
+                            ifelse(DLT_scenario == "Dose-toxicity scenario 2" & EFF_scenario == "Dose-efficacy scenario 2" & hypothesis == "alternative hypothesis", "Scenario D", 
+                            ifelse(DLT_scenario == "Dose-toxicity scenario 1" & EFF_scenario == "Dose-efficacy scenario 1" & hypothesis == "null hypothesis", "Scenario E", 
+                            ifelse(DLT_scenario == "Dose-toxicity scenario 1" & EFF_scenario == "Dose-efficacy scenario 2" & hypothesis == "null hypothesis", "Scenario F", 
+                            ifelse(DLT_scenario == "Dose-toxicity scenario 2" & EFF_scenario == "Dose-efficacy scenario 1" & hypothesis == "null hypothesis", "Scenario G", "Scenario H"))))))))
+
+
+stopping_rules$agreement = factor(stopping_rules$agreement,levels = c("CA","PA","CD"), labels = c("Stage I under CA", "Stage I under PA", "Stage I under CD"))
+stopping_rules$hypothesis = factor(stopping_rules$hypothesis,levels = c("null hypothesis","alternative hypothesis"))
+
+stopping_rules = stopping_rules %>%
+  group_by(DLT_scenario,EFF_scenario,type,hypothesis,agreement) %>%
+  mutate(difference = probability - probability[omega == 0])
+
+plot_stopping_futility = ggplot(stopping_rules %>% filter(type == "Futility stopping" & omega != 0), aes(x = as.factor(omega), y = difference, fill = agreement)) +
+  scale_y_continuous(expression(paste("Difference in the prob. of early stopping w.r.t.",omega," = 0"))) +
+  scale_x_discrete(expression(omega)) +  scale_color_manual(values = hue_pal()(3)) +
+
+  geom_bar(stat = "identity", position = position_dodge(0.9), color = "black", width = 0.7) +
+  #geom_text(aes(label=round(difference,2)), vjust=1.5, color="black", position = position_dodge(0.9), size=2.5) + 
+  labs(title = "") +
+  theme_bw() +
+  theme(legend.position = "bottom",
+        legend.text = element_text(size = 9),
+        legend.background = element_rect(fill="transparent"),
+        legend.key = element_rect(fill="transparent"),
+        legend.title=element_blank()) +
+  facet_wrap( ~ overall_scenario, ncol = 4)
+
+aa = stopping_rules %>% filter(type == "Futility stopping" & omega != 0 & hypothesis == "null hypothesis")
+range(aa$difference)
+
+
+plot_stopping_toxicity = ggplot(stopping_rules %>% filter(type == "Toxicity stopping (St. II)"), aes(x = as.factor(omega), y = probability, shape = agreement)) +
+  scale_y_continuous("Probability of early stopping for safety (St. II)", limits = c(0,0.5)) +
+  scale_x_discrete(expression(omega)) +
+  geom_point(aes(color = agreement), size = 2) +
+  scale_color_manual(values = hue_pal()(3)) +
+  labs(title = "") +
+  theme_bw() +
+  theme(legend.position = "bottom",
+        legend.text = element_text(size = 9),
+        legend.background = element_rect(fill="transparent"),
+        legend.key = element_rect(fill="transparent"),
+        legend.title=element_blank()) +
+  facet_wrap( ~ overall_scenario, ncol = 4)
+
+
+ggsave(paste0(path_outputs,"plot_stopping_futility.pdf"), plot_stopping_futility, width = 8, height = 5, dpi = 300)
+ggsave(paste0(path_outputs,"plot_stopping_toxicity.pdf"), plot_stopping_toxicity, width = 8, height = 5, dpi = 300)
+
+
+
+#Sample sizes
+
+sample_size_stopping_H0 = rbind(sample_size_stopping_rules_DLT_sc1_EFF_sc1_CA_w0_H0,
+                                sample_size_stopping_rules_DLT_sc1_EFF_sc1_CA_w025_H0,
+                                sample_size_stopping_rules_DLT_sc1_EFF_sc1_CA_w050_H0,
+                                sample_size_stopping_rules_DLT_sc1_EFF_sc1_CA_w075_H0,
+                                sample_size_stopping_rules_DLT_sc1_EFF_sc1_CA_w1_H0,
+                                sample_size_stopping_rules_DLT_sc1_EFF_sc1_PA_w0_H0,
+                                sample_size_stopping_rules_DLT_sc1_EFF_sc1_PA_w025_H0,
+                                sample_size_stopping_rules_DLT_sc1_EFF_sc1_PA_w050_H0,
+                                sample_size_stopping_rules_DLT_sc1_EFF_sc1_PA_w075_H0,
+                                sample_size_stopping_rules_DLT_sc1_EFF_sc1_PA_w1_H0,
+                                sample_size_stopping_rules_DLT_sc1_EFF_sc1_CD_w0_H0,
+                                sample_size_stopping_rules_DLT_sc1_EFF_sc1_CD_w025_H0,
+                                sample_size_stopping_rules_DLT_sc1_EFF_sc1_CD_w050_H0,
+                                sample_size_stopping_rules_DLT_sc1_EFF_sc1_CD_w075_H0,
+                                sample_size_stopping_rules_DLT_sc1_EFF_sc1_CD_w1_H0,
+                                sample_size_stopping_rules_DLT_sc1_EFF_sc2_CA_w0_H0,
+                                sample_size_stopping_rules_DLT_sc1_EFF_sc2_CA_w025_H0,
+                                sample_size_stopping_rules_DLT_sc1_EFF_sc2_CA_w050_H0,
+                                sample_size_stopping_rules_DLT_sc1_EFF_sc2_CA_w075_H0,
+                                sample_size_stopping_rules_DLT_sc1_EFF_sc2_CA_w1_H0,
+                                sample_size_stopping_rules_DLT_sc1_EFF_sc2_PA_w0_H0,
+                                sample_size_stopping_rules_DLT_sc1_EFF_sc2_PA_w025_H0,
+                                sample_size_stopping_rules_DLT_sc1_EFF_sc2_PA_w050_H0,
+                                sample_size_stopping_rules_DLT_sc1_EFF_sc2_PA_w075_H0,
+                                sample_size_stopping_rules_DLT_sc1_EFF_sc2_PA_w1_H0,
+                                sample_size_stopping_rules_DLT_sc1_EFF_sc2_CD_w0_H0,
+                                sample_size_stopping_rules_DLT_sc1_EFF_sc2_CD_w025_H0,
+                                sample_size_stopping_rules_DLT_sc1_EFF_sc2_CD_w050_H0,
+                                sample_size_stopping_rules_DLT_sc1_EFF_sc2_CD_w075_H0,
+                                sample_size_stopping_rules_DLT_sc1_EFF_sc2_CD_w1_H0,
+                                sample_size_stopping_rules_DLT_sc2_EFF_sc1_CA_w0_H0,
+                                sample_size_stopping_rules_DLT_sc2_EFF_sc1_CA_w025_H0,
+                                sample_size_stopping_rules_DLT_sc2_EFF_sc1_CA_w050_H0,
+                                sample_size_stopping_rules_DLT_sc2_EFF_sc1_CA_w075_H0,
+                                sample_size_stopping_rules_DLT_sc2_EFF_sc1_CA_w1_H0,
+                                sample_size_stopping_rules_DLT_sc2_EFF_sc1_PA_w0_H0,
+                                sample_size_stopping_rules_DLT_sc2_EFF_sc1_PA_w025_H0,
+                                sample_size_stopping_rules_DLT_sc2_EFF_sc1_PA_w050_H0,
+                                sample_size_stopping_rules_DLT_sc2_EFF_sc1_PA_w075_H0,
+                                sample_size_stopping_rules_DLT_sc2_EFF_sc1_PA_w1_H0,
+                                sample_size_stopping_rules_DLT_sc2_EFF_sc1_CD_w0_H0,
+                                sample_size_stopping_rules_DLT_sc2_EFF_sc1_CD_w025_H0,
+                                sample_size_stopping_rules_DLT_sc2_EFF_sc1_CD_w050_H0,
+                                sample_size_stopping_rules_DLT_sc2_EFF_sc1_CD_w075_H0,
+                                sample_size_stopping_rules_DLT_sc2_EFF_sc1_CD_w1_H0,
+                                sample_size_stopping_rules_DLT_sc2_EFF_sc2_CA_w0_H0,
+                                sample_size_stopping_rules_DLT_sc2_EFF_sc2_CA_w025_H0,
+                                sample_size_stopping_rules_DLT_sc2_EFF_sc2_CA_w050_H0,
+                                sample_size_stopping_rules_DLT_sc2_EFF_sc2_CA_w075_H0,
+                                sample_size_stopping_rules_DLT_sc2_EFF_sc2_CA_w1_H0,
+                                sample_size_stopping_rules_DLT_sc2_EFF_sc2_PA_w0_H0,
+                                sample_size_stopping_rules_DLT_sc2_EFF_sc2_PA_w025_H0,
+                                sample_size_stopping_rules_DLT_sc2_EFF_sc2_PA_w050_H0,
+                                sample_size_stopping_rules_DLT_sc2_EFF_sc2_PA_w075_H0,
+                                sample_size_stopping_rules_DLT_sc2_EFF_sc2_PA_w1_H0,
+                                sample_size_stopping_rules_DLT_sc2_EFF_sc2_CD_w0_H0,
+                                sample_size_stopping_rules_DLT_sc2_EFF_sc2_CD_w025_H0,
+                                sample_size_stopping_rules_DLT_sc2_EFF_sc2_CD_w050_H0,
+                                sample_size_stopping_rules_DLT_sc2_EFF_sc2_CD_w075_H0,
+                                sample_size_stopping_rules_DLT_sc2_EFF_sc2_CD_w1_H0) %>%
+  mutate(futility = round(futility,0),
+         safety = round(safety,0))
+
+sample_size_stopping_H1 = rbind(sample_size_stopping_rules_DLT_sc1_EFF_sc1_CA_w0_H1,
+                                sample_size_stopping_rules_DLT_sc1_EFF_sc1_CA_w025_H1,
+                                sample_size_stopping_rules_DLT_sc1_EFF_sc1_CA_w050_H1,
+                                sample_size_stopping_rules_DLT_sc1_EFF_sc1_CA_w075_H1,
+                                sample_size_stopping_rules_DLT_sc1_EFF_sc1_CA_w1_H1,
+                                sample_size_stopping_rules_DLT_sc1_EFF_sc1_PA_w0_H1,
+                                sample_size_stopping_rules_DLT_sc1_EFF_sc1_PA_w025_H1,
+                                sample_size_stopping_rules_DLT_sc1_EFF_sc1_PA_w050_H1,
+                                sample_size_stopping_rules_DLT_sc1_EFF_sc1_PA_w075_H1,
+                                sample_size_stopping_rules_DLT_sc1_EFF_sc1_PA_w1_H1,
+                                sample_size_stopping_rules_DLT_sc1_EFF_sc1_CD_w0_H1,
+                                sample_size_stopping_rules_DLT_sc1_EFF_sc1_CD_w025_H1,
+                                sample_size_stopping_rules_DLT_sc1_EFF_sc1_CD_w050_H1,
+                                sample_size_stopping_rules_DLT_sc1_EFF_sc1_CD_w075_H1,
+                                sample_size_stopping_rules_DLT_sc1_EFF_sc1_CD_w1_H1,
+                                sample_size_stopping_rules_DLT_sc1_EFF_sc2_CA_w0_H1,
+                                sample_size_stopping_rules_DLT_sc1_EFF_sc2_CA_w025_H1,
+                                sample_size_stopping_rules_DLT_sc1_EFF_sc2_CA_w050_H1,
+                                sample_size_stopping_rules_DLT_sc1_EFF_sc2_CA_w075_H1,
+                                sample_size_stopping_rules_DLT_sc1_EFF_sc2_CA_w1_H1,
+                                sample_size_stopping_rules_DLT_sc1_EFF_sc2_PA_w0_H1,
+                                sample_size_stopping_rules_DLT_sc1_EFF_sc2_PA_w025_H1,
+                                sample_size_stopping_rules_DLT_sc1_EFF_sc2_PA_w050_H1,
+                                sample_size_stopping_rules_DLT_sc1_EFF_sc2_PA_w075_H1,
+                                sample_size_stopping_rules_DLT_sc1_EFF_sc2_PA_w1_H1,
+                                sample_size_stopping_rules_DLT_sc1_EFF_sc2_CD_w0_H1,
+                                sample_size_stopping_rules_DLT_sc1_EFF_sc2_CD_w025_H1,
+                                sample_size_stopping_rules_DLT_sc1_EFF_sc2_CD_w050_H1,
+                                sample_size_stopping_rules_DLT_sc1_EFF_sc2_CD_w075_H1,
+                                sample_size_stopping_rules_DLT_sc1_EFF_sc2_CD_w1_H1,
+                                sample_size_stopping_rules_DLT_sc2_EFF_sc1_CA_w0_H1,
+                                sample_size_stopping_rules_DLT_sc2_EFF_sc1_CA_w025_H1,
+                                sample_size_stopping_rules_DLT_sc2_EFF_sc1_CA_w050_H1,
+                                sample_size_stopping_rules_DLT_sc2_EFF_sc1_CA_w075_H1,
+                                sample_size_stopping_rules_DLT_sc2_EFF_sc1_CA_w1_H1,
+                                sample_size_stopping_rules_DLT_sc2_EFF_sc1_PA_w0_H1,
+                                sample_size_stopping_rules_DLT_sc2_EFF_sc1_PA_w025_H1,
+                                sample_size_stopping_rules_DLT_sc2_EFF_sc1_PA_w050_H1,
+                                sample_size_stopping_rules_DLT_sc2_EFF_sc1_PA_w075_H1,
+                                sample_size_stopping_rules_DLT_sc2_EFF_sc1_PA_w1_H1,
+                                sample_size_stopping_rules_DLT_sc2_EFF_sc1_CD_w0_H1,
+                                sample_size_stopping_rules_DLT_sc2_EFF_sc1_CD_w025_H1,
+                                sample_size_stopping_rules_DLT_sc2_EFF_sc1_CD_w050_H1,
+                                sample_size_stopping_rules_DLT_sc2_EFF_sc1_CD_w075_H1,
+                                sample_size_stopping_rules_DLT_sc2_EFF_sc1_CD_w1_H1,
+                                sample_size_stopping_rules_DLT_sc2_EFF_sc2_CA_w0_H1,
+                                sample_size_stopping_rules_DLT_sc2_EFF_sc2_CA_w025_H1,
+                                sample_size_stopping_rules_DLT_sc2_EFF_sc2_CA_w050_H1,
+                                sample_size_stopping_rules_DLT_sc2_EFF_sc2_CA_w075_H1,
+                                sample_size_stopping_rules_DLT_sc2_EFF_sc2_CA_w1_H1,
+                                sample_size_stopping_rules_DLT_sc2_EFF_sc2_PA_w0_H1,
+                                sample_size_stopping_rules_DLT_sc2_EFF_sc2_PA_w025_H1,
+                                sample_size_stopping_rules_DLT_sc2_EFF_sc2_PA_w050_H1,
+                                sample_size_stopping_rules_DLT_sc2_EFF_sc2_PA_w075_H1,
+                                sample_size_stopping_rules_DLT_sc2_EFF_sc2_PA_w1_H1,
+                                sample_size_stopping_rules_DLT_sc2_EFF_sc2_CD_w0_H1,
+                                sample_size_stopping_rules_DLT_sc2_EFF_sc2_CD_w025_H1,
+                                sample_size_stopping_rules_DLT_sc2_EFF_sc2_CD_w050_H1,
+                                sample_size_stopping_rules_DLT_sc2_EFF_sc2_CD_w075_H1,
+                                sample_size_stopping_rules_DLT_sc2_EFF_sc2_CD_w1_H1) %>%
+  mutate(futility = round(futility,0),
+         safety = round(safety,0))
+
+
+knitr::kable(sample_size_stopping_H0)
+knitr::kable(sample_size_stopping_H1)
+
+```
+
+
+
+```{r}
+
+
+bias_MSE_parameters_H0 =  rbind(bias_MSE_parameters_DLT_sc1_EFF_sc1_CA_w0_H0,
+                                bias_MSE_parameters_DLT_sc1_EFF_sc1_CA_w025_H0,
+                                bias_MSE_parameters_DLT_sc1_EFF_sc1_CA_w050_H0,
+                                bias_MSE_parameters_DLT_sc1_EFF_sc1_CA_w075_H0,
+                                bias_MSE_parameters_DLT_sc1_EFF_sc1_CA_w1_H0,
+                                bias_MSE_parameters_DLT_sc1_EFF_sc1_PA_w0_H0,
+                                bias_MSE_parameters_DLT_sc1_EFF_sc1_PA_w025_H0,
+                                bias_MSE_parameters_DLT_sc1_EFF_sc1_PA_w050_H0,
+                                bias_MSE_parameters_DLT_sc1_EFF_sc1_PA_w075_H0,
+                                bias_MSE_parameters_DLT_sc1_EFF_sc1_PA_w1_H0,
+                                bias_MSE_parameters_DLT_sc1_EFF_sc1_CD_w0_H0,
+                                bias_MSE_parameters_DLT_sc1_EFF_sc1_CD_w025_H0,
+                                bias_MSE_parameters_DLT_sc1_EFF_sc1_CD_w050_H0,
+                                bias_MSE_parameters_DLT_sc1_EFF_sc1_CD_w075_H0,
+                                bias_MSE_parameters_DLT_sc1_EFF_sc1_CD_w1_H0,
+                                bias_MSE_parameters_DLT_sc1_EFF_sc2_CA_w0_H0,
+                                bias_MSE_parameters_DLT_sc1_EFF_sc2_CA_w025_H0,
+                                bias_MSE_parameters_DLT_sc1_EFF_sc2_CA_w050_H0,
+                                bias_MSE_parameters_DLT_sc1_EFF_sc2_CA_w075_H0,
+                                bias_MSE_parameters_DLT_sc1_EFF_sc2_CA_w1_H0,
+                                bias_MSE_parameters_DLT_sc1_EFF_sc2_PA_w0_H0,
+                                bias_MSE_parameters_DLT_sc1_EFF_sc2_PA_w025_H0,
+                                bias_MSE_parameters_DLT_sc1_EFF_sc2_PA_w050_H0,
+                                bias_MSE_parameters_DLT_sc1_EFF_sc2_PA_w075_H0,
+                                bias_MSE_parameters_DLT_sc1_EFF_sc2_PA_w1_H0,
+                                bias_MSE_parameters_DLT_sc1_EFF_sc2_CD_w0_H0,
+                                bias_MSE_parameters_DLT_sc1_EFF_sc2_CD_w025_H0,
+                                bias_MSE_parameters_DLT_sc1_EFF_sc2_CD_w050_H0,
+                                bias_MSE_parameters_DLT_sc1_EFF_sc2_CD_w075_H0,
+                                bias_MSE_parameters_DLT_sc1_EFF_sc2_CD_w1_H0,
+                                bias_MSE_parameters_DLT_sc2_EFF_sc1_CA_w0_H0,
+                                bias_MSE_parameters_DLT_sc2_EFF_sc1_CA_w025_H0,
+                                bias_MSE_parameters_DLT_sc2_EFF_sc1_CA_w050_H0,
+                                bias_MSE_parameters_DLT_sc2_EFF_sc1_CA_w075_H0,
+                                bias_MSE_parameters_DLT_sc2_EFF_sc1_CA_w1_H0,
+                                bias_MSE_parameters_DLT_sc2_EFF_sc1_PA_w0_H0,
+                                bias_MSE_parameters_DLT_sc2_EFF_sc1_PA_w025_H0,
+                                bias_MSE_parameters_DLT_sc2_EFF_sc1_PA_w050_H0,
+                                bias_MSE_parameters_DLT_sc2_EFF_sc1_PA_w075_H0,
+                                bias_MSE_parameters_DLT_sc2_EFF_sc1_PA_w1_H0,
+                                bias_MSE_parameters_DLT_sc2_EFF_sc1_CD_w0_H0,
+                                bias_MSE_parameters_DLT_sc2_EFF_sc1_CD_w025_H0,
+                                bias_MSE_parameters_DLT_sc2_EFF_sc1_CD_w050_H0,
+                                bias_MSE_parameters_DLT_sc2_EFF_sc1_CD_w075_H0,
+                                bias_MSE_parameters_DLT_sc2_EFF_sc1_CD_w1_H0,
+                                bias_MSE_parameters_DLT_sc2_EFF_sc2_CA_w0_H0,
+                                bias_MSE_parameters_DLT_sc2_EFF_sc2_CA_w025_H0,
+                                bias_MSE_parameters_DLT_sc2_EFF_sc2_CA_w050_H0,
+                                bias_MSE_parameters_DLT_sc2_EFF_sc2_CA_w075_H0,
+                                bias_MSE_parameters_DLT_sc2_EFF_sc2_CA_w1_H0,
+                                bias_MSE_parameters_DLT_sc2_EFF_sc2_PA_w0_H0,
+                                bias_MSE_parameters_DLT_sc2_EFF_sc2_PA_w025_H0,
+                                bias_MSE_parameters_DLT_sc2_EFF_sc2_PA_w050_H0,
+                                bias_MSE_parameters_DLT_sc2_EFF_sc2_PA_w075_H0,
+                                bias_MSE_parameters_DLT_sc2_EFF_sc2_PA_w1_H0,
+                                bias_MSE_parameters_DLT_sc2_EFF_sc2_CD_w0_H0,
+                                bias_MSE_parameters_DLT_sc2_EFF_sc2_CD_w025_H0,
+                                bias_MSE_parameters_DLT_sc2_EFF_sc2_CD_w050_H0,
+                                bias_MSE_parameters_DLT_sc2_EFF_sc2_CD_w075_H0,
+                                bias_MSE_parameters_DLT_sc2_EFF_sc2_CD_w1_H0) %>%
+  mutate(hypothesis = "null hypothesis")
+
+bias_MSE_parameters_H1 =  rbind(bias_MSE_parameters_DLT_sc1_EFF_sc1_CA_w0_H1,
+                                bias_MSE_parameters_DLT_sc1_EFF_sc1_CA_w025_H1,
+                                bias_MSE_parameters_DLT_sc1_EFF_sc1_CA_w050_H1,
+                                bias_MSE_parameters_DLT_sc1_EFF_sc1_CA_w075_H1,
+                                bias_MSE_parameters_DLT_sc1_EFF_sc1_CA_w1_H1,
+                                bias_MSE_parameters_DLT_sc1_EFF_sc1_PA_w0_H1,
+                                bias_MSE_parameters_DLT_sc1_EFF_sc1_PA_w025_H1,
+                                bias_MSE_parameters_DLT_sc1_EFF_sc1_PA_w050_H1,
+                                bias_MSE_parameters_DLT_sc1_EFF_sc1_PA_w075_H1,
+                                bias_MSE_parameters_DLT_sc1_EFF_sc1_PA_w1_H1,
+                                bias_MSE_parameters_DLT_sc1_EFF_sc1_CD_w0_H1,
+                                bias_MSE_parameters_DLT_sc1_EFF_sc1_CD_w025_H1,
+                                bias_MSE_parameters_DLT_sc1_EFF_sc1_CD_w050_H1,
+                                bias_MSE_parameters_DLT_sc1_EFF_sc1_CD_w075_H1,
+                                bias_MSE_parameters_DLT_sc1_EFF_sc1_CD_w1_H1,
+                                bias_MSE_parameters_DLT_sc1_EFF_sc2_CA_w0_H1,
+                                bias_MSE_parameters_DLT_sc1_EFF_sc2_CA_w025_H1,
+                                bias_MSE_parameters_DLT_sc1_EFF_sc2_CA_w050_H1,
+                                bias_MSE_parameters_DLT_sc1_EFF_sc2_CA_w075_H1,
+                                bias_MSE_parameters_DLT_sc1_EFF_sc2_CA_w1_H1,
+                                bias_MSE_parameters_DLT_sc1_EFF_sc2_PA_w0_H1,
+                                bias_MSE_parameters_DLT_sc1_EFF_sc2_PA_w025_H1,
+                                bias_MSE_parameters_DLT_sc1_EFF_sc2_PA_w050_H1,
+                                bias_MSE_parameters_DLT_sc1_EFF_sc2_PA_w075_H1,
+                                bias_MSE_parameters_DLT_sc1_EFF_sc2_PA_w1_H1,
+                                bias_MSE_parameters_DLT_sc1_EFF_sc2_CD_w0_H1,
+                                bias_MSE_parameters_DLT_sc1_EFF_sc2_CD_w025_H1,
+                                bias_MSE_parameters_DLT_sc1_EFF_sc2_CD_w050_H1,
+                                bias_MSE_parameters_DLT_sc1_EFF_sc2_CD_w075_H1,
+                                bias_MSE_parameters_DLT_sc1_EFF_sc2_CD_w1_H1,
+                                bias_MSE_parameters_DLT_sc2_EFF_sc1_CA_w0_H1,
+                                bias_MSE_parameters_DLT_sc2_EFF_sc1_CA_w025_H1,
+                                bias_MSE_parameters_DLT_sc2_EFF_sc1_CA_w050_H1,
+                                bias_MSE_parameters_DLT_sc2_EFF_sc1_CA_w075_H1,
+                                bias_MSE_parameters_DLT_sc2_EFF_sc1_CA_w1_H1,
+                                bias_MSE_parameters_DLT_sc2_EFF_sc1_PA_w0_H1,
+                                bias_MSE_parameters_DLT_sc2_EFF_sc1_PA_w025_H1,
+                                bias_MSE_parameters_DLT_sc2_EFF_sc1_PA_w050_H1,
+                                bias_MSE_parameters_DLT_sc2_EFF_sc1_PA_w075_H1,
+                                bias_MSE_parameters_DLT_sc2_EFF_sc1_PA_w1_H1,
+                                bias_MSE_parameters_DLT_sc2_EFF_sc1_CD_w0_H1,
+                                bias_MSE_parameters_DLT_sc2_EFF_sc1_CD_w025_H1,
+                                bias_MSE_parameters_DLT_sc2_EFF_sc1_CD_w050_H1,
+                                bias_MSE_parameters_DLT_sc2_EFF_sc1_CD_w075_H1,
+                                bias_MSE_parameters_DLT_sc2_EFF_sc1_CD_w1_H1,
+                                bias_MSE_parameters_DLT_sc2_EFF_sc2_CA_w0_H1,
+                                bias_MSE_parameters_DLT_sc2_EFF_sc2_CA_w025_H1,
+                                bias_MSE_parameters_DLT_sc2_EFF_sc2_CA_w050_H1,
+                                bias_MSE_parameters_DLT_sc2_EFF_sc2_CA_w075_H1,
+                                bias_MSE_parameters_DLT_sc2_EFF_sc2_CA_w1_H1,
+                                bias_MSE_parameters_DLT_sc2_EFF_sc2_PA_w0_H1,
+                                bias_MSE_parameters_DLT_sc2_EFF_sc2_PA_w025_H1,
+                                bias_MSE_parameters_DLT_sc2_EFF_sc2_PA_w050_H1,
+                                bias_MSE_parameters_DLT_sc2_EFF_sc2_PA_w075_H1,
+                                bias_MSE_parameters_DLT_sc2_EFF_sc2_PA_w1_H1,
+                                bias_MSE_parameters_DLT_sc2_EFF_sc2_CD_w0_H1,
+                                bias_MSE_parameters_DLT_sc2_EFF_sc2_CD_w025_H1,
+                                bias_MSE_parameters_DLT_sc2_EFF_sc2_CD_w050_H1,
+                                bias_MSE_parameters_DLT_sc2_EFF_sc2_CD_w075_H1,
+                                bias_MSE_parameters_DLT_sc2_EFF_sc2_CD_w1_H1) %>%
+  mutate(hypothesis = "alternative hypothesis")
+
+bias_MSE_parameters = rbind(bias_MSE_parameters_H0,bias_MSE_parameters_H1) %>%
+  mutate(overall_scenario = ifelse(DLT_scenario == "Dose-toxicity scenario 1" & EFF_scenario == "Dose-efficacy scenario 1" & hypothesis == "alternative hypothesis", "Scenario A",
+                            ifelse(DLT_scenario == "Dose-toxicity scenario 1" & EFF_scenario == "Dose-efficacy scenario 2" & hypothesis == "alternative hypothesis", "Scenario B", 
+                            ifelse(DLT_scenario == "Dose-toxicity scenario 2" & EFF_scenario == "Dose-efficacy scenario 1" & hypothesis == "alternative hypothesis", "Scenario C", 
+                            ifelse(DLT_scenario == "Dose-toxicity scenario 2" & EFF_scenario == "Dose-efficacy scenario 2" & hypothesis == "alternative hypothesis", "Scenario D", 
+                            ifelse(DLT_scenario == "Dose-toxicity scenario 1" & EFF_scenario == "Dose-efficacy scenario 1" & hypothesis == "null hypothesis", "Scenario E", 
+                            ifelse(DLT_scenario == "Dose-toxicity scenario 1" & EFF_scenario == "Dose-efficacy scenario 2" & hypothesis == "null hypothesis", "Scenario F", 
+                            ifelse(DLT_scenario == "Dose-toxicity scenario 2" & EFF_scenario == "Dose-efficacy scenario 1" & hypothesis == "null hypothesis", "Scenario G", "Scenario H"))))))))
+
+bias_MSE_parameters$agreement = factor(bias_MSE_parameters$agreement,levels = c("CA","PA","CD"), labels = c("Stage I under CA", "Stage I under PA", "Stage I under CD"))
+bias_MSE_parameters$hypothesis = factor(bias_MSE_parameters$hypothesis,levels = c("null hypothesis","alternative hypothesis"))
+
+
+plot_bias_parameters = ggplot(bias_MSE_parameters %>% filter(type == "Bias", parameter %in% c("beta1","beta2")), aes(x = as.factor(omega), y = value, shape = agreement)) +
+  scale_y_continuous("Bias", limits = c(-8,2), breaks = seq(-8,by = 2, 2)) +
+  scale_x_discrete(expression(omega)) +
+  geom_hline(yintercept = 0, colour = "gray") +
+  geom_point(aes(color = agreement), size = 2) +
+  scale_color_manual(values = hue_pal()(3)) +
+  labs(title = "") +
+  theme_bw() +
+  theme(legend.position = "bottom",
+        legend.text = element_text(size = 9),
+        legend.background = element_rect(fill="transparent"),
+        legend.key = element_rect(fill="transparent"),
+        legend.title=element_blank()) +
+  facet_grid(parameter ~ overall_scenario)
+
+plot_MSE_parameters = ggplot(bias_MSE_parameters %>% filter(type == "MSE", parameter %in% c("beta1","beta2")), aes(x = as.factor(omega), y = value, shape = agreement)) +
+  scale_y_continuous("MSE") +
+  scale_x_discrete(expression(omega)) +
+  geom_hline(yintercept = 0, colour = "gray") +
+  geom_point(aes(color = agreement), size = 2) +
+  scale_color_manual(values = hue_pal()(3)) +
+  labs(title = "") +
+  theme_bw() +
+  theme(legend.position = "bottom",
+        legend.text = element_text(size = 9),
+        legend.background = element_rect(fill="transparent"),
+        legend.key = element_rect(fill="transparent"),
+        legend.title=element_blank()) +
+  facet_grid(parameter ~ overall_scenario, scales = "free")
+
+ggsave(paste0(path_outputs,"plot_MSE_parameters.pdf"), plot_MSE_parameters, width = 10, height = 8, dpi = 300)
+ggsave(paste0(path_outputs,"plot_bias_parameters.pdf"), plot_bias_parameters, width = 10, height = 8, dpi = 300)
+
+```
+
+```{r}
+
+dose_combinations_DLT_sc1_EFF_sc1_H1 = rbind(dose_combinations_DLT_sc1_EFF_sc1_CA_w0_H1,
+                                             dose_combinations_DLT_sc1_EFF_sc1_CA_w025_H1,
+                                             dose_combinations_DLT_sc1_EFF_sc1_CA_w050_H1,
+                                             dose_combinations_DLT_sc1_EFF_sc1_CA_w075_H1,
+                                             dose_combinations_DLT_sc1_EFF_sc1_CA_w1_H1,
+                                             dose_combinations_DLT_sc1_EFF_sc1_PA_w0_H1,
+                                             dose_combinations_DLT_sc1_EFF_sc1_PA_w025_H1,
+                                             dose_combinations_DLT_sc1_EFF_sc1_PA_w050_H1,
+                                             dose_combinations_DLT_sc1_EFF_sc1_PA_w075_H1,
+                                             dose_combinations_DLT_sc1_EFF_sc1_PA_w1_H1,
+                                             dose_combinations_DLT_sc1_EFF_sc1_CD_w0_H1,
+                                             dose_combinations_DLT_sc1_EFF_sc1_CD_w025_H1,
+                                             dose_combinations_DLT_sc1_EFF_sc1_CD_w050_H1,
+                                             dose_combinations_DLT_sc1_EFF_sc1_CD_w075_H1,
+                                             dose_combinations_DLT_sc1_EFF_sc1_CD_w1_H1) %>%
+  mutate(peff = peff(true_beta0_DLT_sc1_EFF_sc1_st2_H1,
+                     true_beta1_DLT_sc1_EFF_sc1_st2_H1,
+                     true_beta2_DLT_sc1_EFF_sc1_st2_H1,
+                     true_beta3_DLT_sc1_EFF_sc1_st2_H1,x,y))
+
+dose_combinations_DLT_sc1_EFF_sc2_H1 = rbind(dose_combinations_DLT_sc1_EFF_sc2_CA_w0_H1,
+                                             dose_combinations_DLT_sc1_EFF_sc2_CA_w025_H1,
+                                             dose_combinations_DLT_sc1_EFF_sc2_CA_w050_H1,
+                                             dose_combinations_DLT_sc1_EFF_sc2_CA_w075_H1,
+                                             dose_combinations_DLT_sc1_EFF_sc2_CA_w1_H1,
+                                             dose_combinations_DLT_sc1_EFF_sc2_PA_w0_H1,
+                                             dose_combinations_DLT_sc1_EFF_sc2_PA_w025_H1,
+                                             dose_combinations_DLT_sc1_EFF_sc2_PA_w050_H1,
+                                             dose_combinations_DLT_sc1_EFF_sc2_PA_w075_H1,
+                                             dose_combinations_DLT_sc1_EFF_sc2_PA_w1_H1,
+                                             dose_combinations_DLT_sc1_EFF_sc2_CD_w0_H1,
+                                             dose_combinations_DLT_sc1_EFF_sc2_CD_w025_H1,
+                                             dose_combinations_DLT_sc1_EFF_sc2_CD_w050_H1,
+                                             dose_combinations_DLT_sc1_EFF_sc2_CD_w075_H1,
+                                             dose_combinations_DLT_sc1_EFF_sc2_CD_w1_H1) %>%
+  mutate(peff = peff(true_beta0_DLT_sc1_EFF_sc2_st2_H1,
+                     true_beta1_DLT_sc1_EFF_sc2_st2_H1,
+                     true_beta2_DLT_sc1_EFF_sc2_st2_H1,
+                     true_beta3_DLT_sc1_EFF_sc2_st2_H1,x,y))
+
+dose_combinations_DLT_sc2_EFF_sc1_H1 = rbind(dose_combinations_DLT_sc2_EFF_sc1_CA_w0_H1,
+                                             dose_combinations_DLT_sc2_EFF_sc1_CA_w025_H1,
+                                             dose_combinations_DLT_sc2_EFF_sc1_CA_w050_H1,
+                                             dose_combinations_DLT_sc2_EFF_sc1_CA_w075_H1,
+                                             dose_combinations_DLT_sc2_EFF_sc1_CA_w1_H1,
+                                             dose_combinations_DLT_sc2_EFF_sc1_PA_w0_H1,
+                                             dose_combinations_DLT_sc2_EFF_sc1_PA_w025_H1,
+                                             dose_combinations_DLT_sc2_EFF_sc1_PA_w050_H1,
+                                             dose_combinations_DLT_sc2_EFF_sc1_PA_w075_H1,
+                                             dose_combinations_DLT_sc2_EFF_sc1_PA_w1_H1,
+                                             dose_combinations_DLT_sc2_EFF_sc1_CD_w0_H1,
+                                             dose_combinations_DLT_sc2_EFF_sc1_CD_w025_H1,
+                                             dose_combinations_DLT_sc2_EFF_sc1_CD_w050_H1,
+                                             dose_combinations_DLT_sc2_EFF_sc1_CD_w075_H1,
+                                             dose_combinations_DLT_sc2_EFF_sc1_CD_w1_H1) %>%
+  mutate(peff = peff(true_beta0_DLT_sc2_EFF_sc1_st2_H1,
+                     true_beta1_DLT_sc2_EFF_sc1_st2_H1,
+                     true_beta2_DLT_sc2_EFF_sc1_st2_H1,
+                     true_beta3_DLT_sc2_EFF_sc1_st2_H1,x,y))
+
+
+
+dose_combinations_DLT_sc2_EFF_sc2_H1 = rbind(dose_combinations_DLT_sc2_EFF_sc2_CA_w0_H1,
+                                             dose_combinations_DLT_sc2_EFF_sc2_CA_w025_H1,
+                                             dose_combinations_DLT_sc2_EFF_sc2_CA_w050_H1,
+                                             dose_combinations_DLT_sc2_EFF_sc2_CA_w075_H1,
+                                             dose_combinations_DLT_sc2_EFF_sc2_CA_w1_H1,
+                                             dose_combinations_DLT_sc2_EFF_sc2_PA_w0_H1,
+                                             dose_combinations_DLT_sc2_EFF_sc2_PA_w025_H1,
+                                             dose_combinations_DLT_sc2_EFF_sc2_PA_w050_H1,
+                                             dose_combinations_DLT_sc2_EFF_sc2_PA_w075_H1,
+                                             dose_combinations_DLT_sc2_EFF_sc2_PA_w1_H1,
+                                             dose_combinations_DLT_sc2_EFF_sc2_CD_w0_H1,
+                                             dose_combinations_DLT_sc2_EFF_sc2_CD_w025_H1,
+                                             dose_combinations_DLT_sc2_EFF_sc2_CD_w050_H1,
+                                             dose_combinations_DLT_sc2_EFF_sc2_CD_w075_H1,
+                                             dose_combinations_DLT_sc2_EFF_sc2_CD_w1_H1) %>%
+  mutate(peff = peff(true_beta0_DLT_sc2_EFF_sc2_st2_H1,
+                     true_beta1_DLT_sc2_EFF_sc2_st2_H1,
+                     true_beta2_DLT_sc2_EFF_sc2_st2_H1,
+                     true_beta3_DLT_sc2_EFF_sc2_st2_H1,x,y))
+
+
+
+
+dose_combinations_H1 = rbind(dose_combinations_DLT_sc1_EFF_sc1_H1,
+                             dose_combinations_DLT_sc1_EFF_sc2_H1,
+                             dose_combinations_DLT_sc2_EFF_sc1_H1,
+                             dose_combinations_DLT_sc2_EFF_sc2_H1) 
+
+
+dose_combinations_H1 = dose_combinations_H1 %>%
+  mutate(eff_ind = ifelse(peff > p0, 1, 0)) %>%
+  group_by(DLT_scenario, EFF_scenario, omega, agreement) %>%
+  summarise(proportion = mean(eff_ind)) %>% 
+  ungroup() %>%
+  group_by(DLT_scenario,EFF_scenario,agreement) %>%
+  mutate(difference = proportion - proportion[omega == 0]) %>%
+  ungroup() %>%
+  mutate(hypothesis = "alternative hypothesis") %>%
+  mutate(overall_scenario = ifelse(DLT_scenario == "Dose-toxicity scenario 1" & EFF_scenario == "Dose-efficacy scenario 1" & hypothesis == "alternative hypothesis", "Scenario A",
+                                   ifelse(DLT_scenario == "Dose-toxicity scenario 1" & EFF_scenario == "Dose-efficacy scenario 2" & hypothesis == "alternative hypothesis", "Scenario B", 
+                                          ifelse(DLT_scenario == "Dose-toxicity scenario 2" & EFF_scenario == "Dose-efficacy scenario 1" & hypothesis == "alternative hypothesis", "Scenario C", 
+                                                 ifelse(DLT_scenario == "Dose-toxicity scenario 2" & EFF_scenario == "Dose-efficacy scenario 2" & hypothesis == "alternative hypothesis", "Scenario D", 
+                                                        ifelse(DLT_scenario == "Dose-toxicity scenario 1" & EFF_scenario == "Dose-efficacy scenario 1" & hypothesis == "null hypothesis", "Scenario E", 
+                                                               ifelse(DLT_scenario == "Dose-toxicity scenario 1" & EFF_scenario == "Dose-efficacy scenario 2" & hypothesis == "null hypothesis", "Scenario F", 
+                                                                      ifelse(DLT_scenario == "Dose-toxicity scenario 2" & EFF_scenario == "Dose-efficacy scenario 1" & hypothesis == "null hypothesis", "Scenario G", "Scenario H"))))))))
+
+dose_combinations_H1$agreement = factor(dose_combinations_H1$agreement,levels = c("CA","PA","CD"),
+                                        labels = c("Stage I under CA", "Stage I under PA", "Stage I under CD"))
+
+plot_dose_combinations_st2 = 
+ggplot(dose_combinations_H1 %>% filter(omega != 0), aes(x = as.factor(omega), y = difference, fill = agreement)) +
+  scale_y_continuous(expression(paste("Difference in the prop. of correct patient allocation w.r.t. ",omega," = 0")), limits = c(-0.005,0.07), labels = scales::percent_format(accuracy = 1)) +
+  scale_x_discrete(expression(omega)) +
+  geom_bar(stat = "identity", position = position_dodge(), color = "black") +
+  #geom_text(aes(label=round(difference,2)), vjust=1.5, color="black", position = position_dodge(0.9), size=2.5) + 
+  scale_color_manual(values = hue_pal()(3)) +
+  labs(title = "") +
+  theme_bw() +
+  theme(legend.position = "bottom",
+        legend.text = element_text(size = 9),
+        legend.background = element_rect(fill="transparent"),
+        legend.key = element_rect(fill="transparent"),
+        legend.title=element_blank()) +
+  facet_wrap(~ overall_scenario)
+
+ggsave(paste0(path_outputs,"plot_proportion_allocation_above_threshold_stage2_H1.pdf"), plot_dose_combinations_st2, width = 8, height = 5, dpi = 300)
+
+aa = dose_combinations_H1 %>% filter(omega != 0)
+range(aa$difference*100)
+
+```
+
+
+```{r}
+
+DLT_rate_H0 = rbind(DLT_rate_DLT_sc1_EFF_sc1_CA_w0_H0,
+                    DLT_rate_DLT_sc1_EFF_sc1_CA_w025_H0,
+                    DLT_rate_DLT_sc1_EFF_sc1_CA_w050_H0,
+                    DLT_rate_DLT_sc1_EFF_sc1_CA_w075_H0,
+                    DLT_rate_DLT_sc1_EFF_sc1_CA_w1_H0,
+                    DLT_rate_DLT_sc1_EFF_sc1_PA_w0_H0,
+                    DLT_rate_DLT_sc1_EFF_sc1_PA_w025_H0,
+                    DLT_rate_DLT_sc1_EFF_sc1_PA_w050_H0,
+                    DLT_rate_DLT_sc1_EFF_sc1_PA_w075_H0,
+                    DLT_rate_DLT_sc1_EFF_sc1_PA_w1_H0,
+                    DLT_rate_DLT_sc1_EFF_sc1_CD_w0_H0,
+                    DLT_rate_DLT_sc1_EFF_sc1_CD_w025_H0,
+                    DLT_rate_DLT_sc1_EFF_sc1_CD_w050_H0,
+                    DLT_rate_DLT_sc1_EFF_sc1_CD_w075_H0,
+                    DLT_rate_DLT_sc1_EFF_sc1_CD_w1_H0,
+                    DLT_rate_DLT_sc1_EFF_sc2_CA_w0_H0,
+                    DLT_rate_DLT_sc1_EFF_sc2_CA_w025_H0,
+                    DLT_rate_DLT_sc1_EFF_sc2_CA_w050_H0,
+                    DLT_rate_DLT_sc1_EFF_sc2_CA_w075_H0,
+                    DLT_rate_DLT_sc1_EFF_sc2_CA_w1_H0,
+                    DLT_rate_DLT_sc1_EFF_sc2_PA_w0_H0,
+                    DLT_rate_DLT_sc1_EFF_sc2_PA_w025_H0,
+                    DLT_rate_DLT_sc1_EFF_sc2_PA_w050_H0,
+                    DLT_rate_DLT_sc1_EFF_sc2_PA_w075_H0,
+                    DLT_rate_DLT_sc1_EFF_sc2_PA_w1_H0,
+                    DLT_rate_DLT_sc1_EFF_sc2_CD_w0_H0,
+                    DLT_rate_DLT_sc1_EFF_sc2_CD_w025_H0,
+                    DLT_rate_DLT_sc1_EFF_sc2_CD_w050_H0,
+                    DLT_rate_DLT_sc1_EFF_sc2_CD_w075_H0,
+                    DLT_rate_DLT_sc1_EFF_sc2_CD_w1_H0,
+                    DLT_rate_DLT_sc2_EFF_sc1_CA_w0_H0,
+                    DLT_rate_DLT_sc2_EFF_sc1_CA_w025_H0,
+                    DLT_rate_DLT_sc2_EFF_sc1_CA_w050_H0,
+                    DLT_rate_DLT_sc2_EFF_sc1_CA_w075_H0,
+                    DLT_rate_DLT_sc2_EFF_sc1_CA_w1_H0,
+                    DLT_rate_DLT_sc2_EFF_sc1_PA_w0_H0,
+                    DLT_rate_DLT_sc2_EFF_sc1_PA_w025_H0,
+                    DLT_rate_DLT_sc2_EFF_sc1_PA_w050_H0,
+                    DLT_rate_DLT_sc2_EFF_sc1_PA_w075_H0,
+                    DLT_rate_DLT_sc2_EFF_sc1_PA_w1_H0,
+                    DLT_rate_DLT_sc2_EFF_sc1_CD_w0_H0,
+                    DLT_rate_DLT_sc2_EFF_sc1_CD_w025_H0,
+                    DLT_rate_DLT_sc2_EFF_sc1_CD_w050_H0,
+                    DLT_rate_DLT_sc2_EFF_sc1_CD_w075_H0,
+                    DLT_rate_DLT_sc2_EFF_sc1_CD_w1_H0,
+                    DLT_rate_DLT_sc2_EFF_sc2_CA_w0_H0,
+                    DLT_rate_DLT_sc2_EFF_sc2_CA_w025_H0,
+                    DLT_rate_DLT_sc2_EFF_sc2_CA_w050_H0,
+                    DLT_rate_DLT_sc2_EFF_sc2_CA_w075_H0,
+                    DLT_rate_DLT_sc2_EFF_sc2_CA_w1_H0,
+                    DLT_rate_DLT_sc2_EFF_sc2_PA_w0_H0,
+                    DLT_rate_DLT_sc2_EFF_sc2_PA_w025_H0,
+                    DLT_rate_DLT_sc2_EFF_sc2_PA_w050_H0,
+                    DLT_rate_DLT_sc2_EFF_sc2_PA_w075_H0,
+                    DLT_rate_DLT_sc2_EFF_sc2_PA_w1_H0,
+                    DLT_rate_DLT_sc2_EFF_sc2_CD_w0_H0,
+                    DLT_rate_DLT_sc2_EFF_sc2_CD_w025_H0,
+                    DLT_rate_DLT_sc2_EFF_sc2_CD_w050_H0,
+                    DLT_rate_DLT_sc2_EFF_sc2_CD_w075_H0,
+                    DLT_rate_DLT_sc2_EFF_sc2_CD_w1_H0) %>%
+  mutate(hypothesis = "null hypothesis")
+
+
+DLT_rate_H1 = rbind(DLT_rate_DLT_sc1_EFF_sc1_CA_w0_H1,
+                    DLT_rate_DLT_sc1_EFF_sc1_CA_w025_H1,
+                    DLT_rate_DLT_sc1_EFF_sc1_CA_w050_H1,
+                    DLT_rate_DLT_sc1_EFF_sc1_CA_w075_H1,
+                    DLT_rate_DLT_sc1_EFF_sc1_CA_w1_H1,
+                    DLT_rate_DLT_sc1_EFF_sc1_PA_w0_H1,
+                    DLT_rate_DLT_sc1_EFF_sc1_PA_w025_H1,
+                    DLT_rate_DLT_sc1_EFF_sc1_PA_w050_H1,
+                    DLT_rate_DLT_sc1_EFF_sc1_PA_w075_H1,
+                    DLT_rate_DLT_sc1_EFF_sc1_PA_w1_H1,
+                    DLT_rate_DLT_sc1_EFF_sc1_CD_w0_H1,
+                    DLT_rate_DLT_sc1_EFF_sc1_CD_w025_H1,
+                    DLT_rate_DLT_sc1_EFF_sc1_CD_w050_H1,
+                    DLT_rate_DLT_sc1_EFF_sc1_CD_w075_H1,
+                    DLT_rate_DLT_sc1_EFF_sc1_CD_w1_H1,
+                    DLT_rate_DLT_sc1_EFF_sc2_CA_w0_H1,
+                    DLT_rate_DLT_sc1_EFF_sc2_CA_w025_H1,
+                    DLT_rate_DLT_sc1_EFF_sc2_CA_w050_H1,
+                    DLT_rate_DLT_sc1_EFF_sc2_CA_w075_H1,
+                    DLT_rate_DLT_sc1_EFF_sc2_CA_w1_H1,
+                    DLT_rate_DLT_sc1_EFF_sc2_PA_w0_H1,
+                    DLT_rate_DLT_sc1_EFF_sc2_PA_w025_H1,
+                    DLT_rate_DLT_sc1_EFF_sc2_PA_w050_H1,
+                    DLT_rate_DLT_sc1_EFF_sc2_PA_w075_H1,
+                    DLT_rate_DLT_sc1_EFF_sc2_PA_w1_H1,
+                    DLT_rate_DLT_sc1_EFF_sc2_CD_w0_H1,
+                    DLT_rate_DLT_sc1_EFF_sc2_CD_w025_H1,
+                    DLT_rate_DLT_sc1_EFF_sc2_CD_w050_H1,
+                    DLT_rate_DLT_sc1_EFF_sc2_CD_w075_H1,
+                    DLT_rate_DLT_sc1_EFF_sc2_CD_w1_H1,
+                    DLT_rate_DLT_sc2_EFF_sc1_CA_w0_H1,
+                    DLT_rate_DLT_sc2_EFF_sc1_CA_w025_H1,
+                    DLT_rate_DLT_sc2_EFF_sc1_CA_w050_H1,
+                    DLT_rate_DLT_sc2_EFF_sc1_CA_w075_H1,
+                    DLT_rate_DLT_sc2_EFF_sc1_CA_w1_H1,
+                    DLT_rate_DLT_sc2_EFF_sc1_PA_w0_H1,
+                    DLT_rate_DLT_sc2_EFF_sc1_PA_w025_H1,
+                    DLT_rate_DLT_sc2_EFF_sc1_PA_w050_H1,
+                    DLT_rate_DLT_sc2_EFF_sc1_PA_w075_H1,
+                    DLT_rate_DLT_sc2_EFF_sc1_PA_w1_H1,
+                    DLT_rate_DLT_sc2_EFF_sc1_CD_w0_H1,
+                    DLT_rate_DLT_sc2_EFF_sc1_CD_w025_H1,
+                    DLT_rate_DLT_sc2_EFF_sc1_CD_w050_H1,
+                    DLT_rate_DLT_sc2_EFF_sc1_CD_w075_H1,
+                    DLT_rate_DLT_sc2_EFF_sc1_CD_w1_H1,
+                    DLT_rate_DLT_sc2_EFF_sc2_CA_w0_H1,
+                    DLT_rate_DLT_sc2_EFF_sc2_CA_w025_H1,
+                    DLT_rate_DLT_sc2_EFF_sc2_CA_w050_H1,
+                    DLT_rate_DLT_sc2_EFF_sc2_CA_w075_H1,
+                    DLT_rate_DLT_sc2_EFF_sc2_CA_w1_H1,
+                    DLT_rate_DLT_sc2_EFF_sc2_PA_w0_H1,
+                    DLT_rate_DLT_sc2_EFF_sc2_PA_w025_H1,
+                    DLT_rate_DLT_sc2_EFF_sc2_PA_w050_H1,
+                    DLT_rate_DLT_sc2_EFF_sc2_PA_w075_H1,
+                    DLT_rate_DLT_sc2_EFF_sc2_PA_w1_H1,
+                    DLT_rate_DLT_sc2_EFF_sc2_CD_w0_H1,
+                    DLT_rate_DLT_sc2_EFF_sc2_CD_w025_H1,
+                    DLT_rate_DLT_sc2_EFF_sc2_CD_w050_H1,
+                    DLT_rate_DLT_sc2_EFF_sc2_CD_w075_H1,
+                    DLT_rate_DLT_sc2_EFF_sc2_CD_w1_H1) %>%
+  mutate(hypothesis = "alternative hypothesis")
+
+
+DLT_rate = rbind(DLT_rate_H0,DLT_rate_H1)
+
+knitr::kable(DLT_rate)
+
+aa = DLT_rate %>% filter(hypothesis == "null hypothesis")
+range(round(aa$proportion_trial_with_DLT_rate_above_threshold_st2,2)*100)
+
+aa = DLT_rate %>% filter(hypothesis == "alternative hypothesis")
+range(round(aa$proportion_trial_with_DLT_rate_above_threshold_st2,2)*100)
+
+```
